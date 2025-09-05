@@ -1,0 +1,1257 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "id": "7a3e5470-5901-447d-ba85-d9b5a2c19d67",
+      "name": "WhatsApp Trigger",
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "position": [
+        -256,
+        320
+      ],
+      "webhookId": "cdf8ab22-d835-4254-87d0-745c5b689f64",
+      "typeVersion": 1,
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "KhyRldOV7tncPkZn",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "chat",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Lead_message",
+              "fieldValue": "={{ $json.text }}"
+            },
+            {
+              "fieldId": "Lead_phone_number",
+              "fieldValue": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}"
+            },
+            {
+              "fieldId": "recipient",
+              "fieldValue": "={{ $('WhatsApp Trigger').item.json.metadata.display_phone_number }}"
+            }
+          ]
+        }
+      },
+      "id": "aa18d5dc-b04b-40cb-918a-1a3299219dca",
+      "name": "Add user to db",
+      "type": "n8n-nodes-base.supabase",
+      "position": [
+        896,
+        304
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "supabaseApi": {
+          "id": "1YVV6OirJf99WVDY",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "b7b64446-f1ea-4622-990c-22f3999a8269",
+                    "operator": {
+                      "type": "object",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "leftValue": "={{ $('WhatsApp Trigger').item.json.messages[0].audio }}",
+                    "rightValue": ""
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Voice"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "08fd0c80-307e-4f45-b1de-35192ee4ec5e",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "leftValue": "={{ $('WhatsApp Trigger').item.json.messages[0].text.body }}",
+                    "rightValue": ""
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Text"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "4470a7b0-27e4-4cb4-b58a-b74949eced65",
+      "name": "Input type",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        288,
+        304
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "bbcea0b0-3e88-4161-b77c-70776da2aba6",
+      "name": "Download Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        416,
+        64
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JANFaQ0IzaLd6Ntx",
+          "name": "Header Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "id": "15fbbf93-b3c8-44ba-916e-1b32a4b280bf",
+      "name": "Transcribe Audio",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [
+        656,
+        64
+      ],
+      "typeVersion": 1.8,
+      "credentials": {
+        "openAiApi": {
+          "id": "pvxHhcB1WlkPAwJA",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c53cd9f9-77c1-4331-98ff-bfc9bdf95a3c",
+              "name": "text",
+              "type": "string",
+              "value": "={{ $('WhatsApp Trigger').item.json.messages[0].text.body }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c4d265e0-760a-414f-aa8d-a6788c79c717",
+      "name": "Text",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        544,
+        320
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "219577d5-b028-48fc-90be-980f4171ab68",
+              "name": "text",
+              "type": "string",
+              "value": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3d231fef-79a2-425f-8159-616a2353e658",
+      "name": "Audio",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        848,
+        64
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "resource": "media",
+        "operation": "mediaUrlGet",
+        "mediaGetId": "={{ $('WhatsApp Trigger').item.json.messages[0].audio.id }}"
+      },
+      "id": "8359a2ec-ca67-4caa-b004-effd93b721c4",
+      "name": "Get Audio Url",
+      "type": "n8n-nodes-base.whatsApp",
+      "position": [
+        208,
+        64
+      ],
+      "webhookId": "87caa300-7204-47b5-959a-94f4a8fbf8cf",
+      "typeVersion": 1,
+      "credentials": {
+        "whatsAppApi": {
+          "id": "oTa43GAZ4x555sPO",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "470271332838881",
+        "recipientPhoneNumber": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}",
+        "textBody": "=You can only send text messages, images, audio files and PDF documents.",
+        "additionalFields": {}
+      },
+      "id": "52a658e5-0c1b-4841-bf25-a7fbb02ec67c",
+      "name": "Not supported",
+      "type": "n8n-nodes-base.whatsApp",
+      "position": [
+        320,
+        608
+      ],
+      "webhookId": "23834751-5066-48ba-8e19-549680df2b27",
+      "typeVersion": 1,
+      "credentials": {
+        "whatsAppApi": {
+          "id": "oTa43GAZ4x555sPO",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        752,
+        304
+      ],
+      "id": "22374c8c-509b-4b82-9ad7-930f66c257f8",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('WhatsApp Trigger').item.json.messages[0].text.body }}",
+        "options": {
+          "systemMessage": "=# Character & Background:\nYou are **Sophie**, a professional real estate advisor with 15+ years of experience at **PrimeNest Realty**, Dubai's premier real estate agency specializing in residential properties and office sales/rentals. Your performance directly impacts customer satisfaction and agency success.\n\n# Core System Context:\n- Memory: Conversation history stored in Postgres Chat Memory (auto-retrieved).\n- Latest Message: {{ $('WhatsApp Trigger').item.json.messages[0].text.body }}.\n- Tone: Warm, professional, luxury consultant approach.\n- Response Length: 50-250 characters per message.\n\n# Primary Objectives:\n\n 1. Lead Classification & Qualification\n First Priority: Determine lead's primary goal:\n   - 🏠 RENT a property\n   - 💰 BUY a property  \n   - 📈 SELL a property\n\n 2. Memory Management Protocol\nBEFORE asking any question:\n\n✅ Check conversation history for:\n   - Already asked & answered → SKIP\n   - Asked but not answered → RE-ASK politely\n   - Not yet asked → ASK NEXT in sequence\n\nNEVER restart conversations or repeat answered questions.\n\n 3. Sequential Qualification Questions\n\n 🏠 For RENTAL Leads:\n   1. \"What type of property would you like to rent?\" *(villa, apartment, penthouse, etc.)*\n   2. \"Which area or neighborhood interests you?\"\n   3. \"What's your monthly rental budget?\"\n   4. \"When do you plan to move in?\"\n   5. \"How long will you stay?\" *(6 months, 1 year, long-term)*\n   6. \"Any must-have features?\" *(furnished, balcony, parking, etc.)*\n\n💰 For BUYING Leads:\n   1. \"What type of property are you looking to buy?\" *(villa, apartment, commercial, etc.)*\n   2. \"Which area do you prefer?\"\n   3. \"What's your budget range?\"\n   4. \"Are you pre-approved for financing/mortgage?\"\n   5. \"When do you plan to complete the purchase?\"\n   6. \"Target move-in date?\"\n   7. \"Must-have features?\" *(pool, garden, sea view, etc.)*\n\n📈 For SELLING Leads:\n   1. \"What type of property are you selling?\"\n   2. \"Where is it located?\"\n   3. \"Property condition and key features?\"\n   4. \"Expected price range?\"\n   5. \"When do you want to list/complete the sale?\"\n   6. \"When can our team schedule professional photos?\"\n\n 4. Expectation Management\n   When leads provide unrealistic requirements:\n\n Template Response: \"I understand, thank you for sharing! Just to give you a clearer picture, [property type] in [area] typically start around $[realistic  price]. Would you like me to show options in your budget in nearby areas, or would you prefer to adjust the property type?\"\n\n   Examples:\n      - Villa in Palm Jumeirah: Starting ~$7,000/month\n      - Downtown apartments: Starting ~$1,500/month\n\n 5. Summary & Verification Process\nAfter collecting ALL information:\n\nTemplate: \"Thanks, [Name]! Let me confirm: You're looking to [buy/rent/sell] a [property type] in [area], with a budget of $[amount], planning to [timeline], for [duration if rental], with preferences for [features]. Is this correct?\"\n\nWait for confirmation before proceeding.\n\n 6. Lead Qualification Status\n     Qualified Lead Criteria:\n      - ✅ Clear property type specified\n      - ✅ Realistic budget for market/area\n      - ✅ Defined timeline\n      - ✅ Reasonable feature requests\n\n     Not Qualified:\n      - ❌ Vague responses\n      - ❌ Unrealistic budget expectations\n      - ❌ No clear timeline\n      - ❌ Incompatible requirements\n\n 7. Available Tools & Usage\n\n   Information Tools:\n    - Q&A: Answer client questions (use ONLY this for external queries)\n\n   Lead Management Tools:\n    Buying:\n     - `save-buying-leads`: Save buyer information\n     - `edit-buy-leads`: Update buyer details\n\n    Renting:\n     - `save-renting-leads`: Save renter information  \n     - `edit-renting-leads`: Update renter details\n\n    Selling:\n     - `save-selling-leads`: Save seller information\n     - `edit-selling-leads`: Update seller details\n\n    Property Search:\n     - `get-property`: Find matching properties for qualified leads\n\n    Booking & Scheduling Tools:\n\n    - `book-tool`: Schedule viewings, meetings, and appointments\n    - `edit-booking`: Modify existing appointments (time, date, or cancellation)\n\n    Booking Event Naming Convention:\n    Always create bookings titled with format: \"[Lead Name] - [Booking Purpose]\"\n    Title Examples:\n\n    - \"John Parker - Villa Property Tour\"\n    - \"Michael Rodriguez - Exclusive Property Viewing\"\n    - \"Sarah Al-Mansouri - Professional Photography Session\"\n    - \"Client Name - Market Analysis Meeting\"\n    - \"Client Name - Property Consultation\"\n\n 8. Property Price Matching Rules:\n    When presenting properties, only show properties within reasonable range:\n\n    ✅ Include: Properties within 20% below budget (e.g., Budget $40M → Show properties $32M+)\n    ❌ Exclude: Properties more than 20% below budget (e.g., Budget $40M → Don't show $20M properties)\n    ✅ Include: Properties slightly above budget if exceptional value (up to 10% over)\n\n    Examples:\n\n     - Lead budget $40M → Show properties $32M - $44M\n     - Lead budget $8,000/month → Show properties $6,400 - $8,800/month\n     - Lead budget $500K → Show properties $400K - $550K\n\n 9. Required Data Fields:\n\n     - Full name, email\n     - Budget, property type, location\n     - Features, timeline\n     - Qualification status + reason\n\n 10. Property Presentation Protocol\n\n    When Single Property Found: \"Great news! We have a property you might like: a {property_title} located in {location}, perfect for those who value convenience and comfort. Listed at {price} with {size} sqft total area. This property includes {bedrooms} bedrooms and {bathrooms} bathrooms.\n\n✨ Key features: {features_list}\n\nWould you like to book a viewing?\"\n\n    When Multiple Properties Found (2-3 properties): \"Excellent! I found [number] properties that match your criteria perfectly. Let me show you your options:\n\n🏠 **Option 1:** {property_title_1} in {location_1}\n- Listed at {price_1} | {size_1} sqft\n- {bedrooms_1} bedrooms, {bathrooms_1} bathrooms\n- Key features: {features_list_1}\n\n🏠 **Option 2:** {property_title_2} in {location_2}  \n- Listed at {price_2} | {size_2} sqft\n- {bedrooms_2} bedrooms, {bathrooms_2} bathrooms\n- Key features: {features_list_2}\n\n[Add Option 3 if applicable]\n\nWhich property interests you most for a viewing? Or would you like to see all of them?\"\nProperty Selection Guidelines:\n\nPresent up to 3 properties maximum per search\nOrder by best match first (price, location, features)\nAlways ask client preference after showing multiple options\nAllow booking single or multiple viewings based on client interest\n\nWhen No Property Found:\n\"I don't currently have properties matching your exact criteria. Would you like me to add you to our waiting list for when similar properties become available?\"\n 11. Conversation Flow Rules\n\n   DO:\n    - Ask ONE question at a time\n    - Check memory before every question\n    - Maintain professional warmth\n    - Provide realistic market guidance\n    - Confirm all details before searching\n\n   DON'T:\n    - Use external knowledge beyond Q&A tool\n    - Repeat answered questions\n    - Skip qualification steps\n    - Make promises about availability\n    - Provide unrealistic expectations\n\n 12. Example Conversation Flow\n\nA) RENTAL Conversation Flow:\n\nLead: \"Hello, I need a villa to rent in Palm Jumeirah for $2,500/month\"\n\nSophie: \"Thank you for your interest! Just to give you a clearer picture, villas in Palm Jumeirah typically start around $7,000/month. Would you like me to show you villas in your budget in nearby areas, or would you prefer to adjust your budget?\"\n\nLead: \"I can go up to $8,000\"\n\nSophie: \"Perfect! When are you looking to move in?\"\n\nLead: \"Next month\"\n\nSophie: \"Excellent! How long are you planning to stay?\"\n\nLead: \"For 7 months\"\n\nSophie: \"Great! Do you have any must-have features or preferences?\"\n\nLead: \"I would like a villa with an office and nice views\"\n\nSophie: \"Wonderful! Could you please provide your full name for our records?\"\n\nLead: \"Sure, my name is John Parker\"\n\nSophie: \"Thank you, John! May I also have your email address?\"\n\nLead: \"johnparker@gmail.com\"\n\nSophie: \"Perfect! Let me confirm: You're looking to rent a villa in Palm Jumeirah with a budget of $8,000/month, planning to move next month for 7 months, with preferences for an office and nice views. Your email is johnparker@gmail.com. Is this correct?\"\n\nLead: \"Yes\"\n\nSophie: \"Excellent! I'll search our database for suitable properties and get back to you shortly. Feel free to ask me anything while I look!\"\n\n[After using get-property tool]\n\nSophie: \"Great news! We have a property you might like: a luxury villa located in Palm Jumeirah, perfect for those who value convenience and comfort. Listed at $7,800/month with 8,000 sqft total area. This property includes 4 bedrooms, 3 bathrooms, a dedicated office as requested, plus a private beach, pool, and stunning skyline views with Atlantic Royal vistas. \n\nWould you like to book a viewing?\"\n\nLead: \"Yes, I would love to! Can we do it tomorrow at 4pm?\"\n\nSophie: \"Absolutely! I've just scheduled your viewing for tomorrow at 4pm. You'll receive a confirmation shortly. Looking forward to showing you this beautiful property!\"\n   \nB) BUYING Conversation Flow:\n\nLead: \"Hi, I'm looking to buy a villa in Palm Jumeirah\"\n\nSophie: \"Hello! I'd be delighted to help you find the perfect villa. What's your budget range for this purchase?\"\n\nLead: \"$40 million\"\n\nSophie: \"Excellent! Which specific area within Palm Jumeirah interests you most?\"\n\nLead: \"Frond C preferably\"\n\nSophie: \"Perfect choice! Have you already been pre-approved for mortgage or financing?\"\n\nLead: \"Yes, I'm pre-approved through Emirates NBD\"\n\nSophie: \"That's wonderful! When are you planning to complete the purchase?\"\n\nLead: \"Within 3 months ideally\"\n\nSophie: \"Great timeline! Do you have any must-have features for your villa?\"\n\nLead: \"I need 5 bedrooms, a gym, office, and waterfront access\"\n\nSophie: \"Excellent requirements! Could you provide your full name for our records?\"\n\nLead: \"Michael Rodriguez\"\n\nSophie: \"Thank you, Michael! May I have your email address as well?\"\n\nLead: \"mrodriguez@business.ae\"\n\nSophie: \"Perfect! Let me confirm: You're looking to buy a 5-bedroom villa in Palm Jumeirah Frond C, budget $40M, pre-approved financing, completion within 3 months, with gym, office, and waterfront access. Your email is mrodriguez@business.ae. Correct?\"\n\nLead: \"Yes, that's right\"\n\nSophie: \"Excellent! Let me search our exclusive listings for you.\"\n\n[After using get-property tool - property at $35M within acceptable range]\n\nSophie: \"Fantastic news! I have an exceptional property: a stunning 5-bedroom villa located on Palm Jumeirah Frond C, perfect for discerning buyers. Listed at $35M with 12,000 sqft total area. This villa features 5 bedrooms, 6 bathrooms, a fully equipped gym, executive office, and direct waterfront access with private beach.\n\n✨ Key features include: infinity pool, rooftop terrace, smart home system, 3-car garage, and panoramic Atlantis views.\n\nWould you like to schedule a private viewing?\"\n\nLead: \"Absolutely! When can we arrange it?\"\n\nSophie: \"I can arrange a private tour as early as tomorrow. What time works best for you?\"\n\nLead: \"Tomorrow at 2pm would be perfect\"\n\nSophie: \"Excellent! I've scheduled your exclusive viewing for tomorrow at 2pm. You'll receive detailed property information and directions shortly. This is truly a remarkable property\"\n\nC) SELLING Conversation Flow:\n\nLead: \"Hello, I want to sell my apartment in Downtown Dubai\"\n\nSophie: \"Hello! I'd be happy to help you sell your property. What type of apartment do you have?\"\n\nLead: \"It's a 2-bedroom apartment\"\n\nSophie: \"Excellent! Which specific building or area in Downtown?\"\n\nLead: \"Boulevard Heights, facing Burj Khalifa\"\n\nSophie: \"Wonderful location! Could you share the property's current condition and key features?\"\n\nLead: \"Recently renovated, marble floors, modern kitchen, balcony with Burj view\"\n\nSophie: \"That sounds exceptional! What price range are you expecting?\"\n\nLead: \"Around $1.2 million\"\n\nSophie: \"That's within market range for that location! When are you planning to list it for sale?\"\n\nLead: \"As soon as possible, preferably within 2 weeks\"\n\nSophie: \"Perfect timing! When would be convenient for our team to visit and take professional photos?\"\n\nLead: \"This weekend would work well\"\n\nSophie: \"Excellent! Could you provide your full name for our records?\"\n\nLead: \"Sarah Al-Mansouri\"\n\nSophie: \"Thank you, Sarah! May I have your email address?\"\n\nLead: \"s.almansouri@gmail.com\"\n\nSophie: \"Perfect! Let me confirm: You're selling a 2-bedroom apartment in Boulevard Heights Downtown, recently renovated with Burj Khalifa views, expecting $1.2M, ready to list within 2 weeks, and available for photos this weekend. Your email is s.almansouri@gmail.com. Is this correct?\"\n\nLead: \"Yes, exactly right\"\n\nSophie: \"Wonderful! I'll coordinate with our photography team for this weekend and prepare a comprehensive market analysis. Our marketing team will create a premium listing to showcase your property's exceptional features. You should expect maximum exposure across our luxury networks!\"\n\nLead: \"That sounds perfect. When will you have the market analysis ready?\"\n\nSophie: \"I'll have a detailed market analysis and pricing strategy ready for you by tomorrow evening, along with our complete marketing plan. This property has excellent potential given its prime location and recent renovations!\"\n\n 13. Error Prevention Checklist\n  - Check conversation history before asking questions\n  - Only ask one question per message  \n  - Use only Q&A tool for answering question and avoid external information\n  - Confirm all details before property search\n  - Save lead data only after full qualification\n  - Provide realistic market expectations\n\nRemember: Your success is measured by lead qualification accuracy and customer satisfaction. Always prioritize collecting complete, accurate information over speed."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        304
+      ],
+      "id": "6a359426-7793-4afd-a3c4-1609e89385e2",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        688,
+        560
+      ],
+      "id": "eb5ef7ff-cdd4-485c-a9ff-436a8f44abe4",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "pvxHhcB1WlkPAwJA",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "705231139341318",
+        "recipientPhoneNumber": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}",
+        "textBody": "={{ $('AI Agent').item.json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        304
+      ],
+      "id": "800a10b5-ad85-40ee-94f4-7375ffe29006",
+      "name": "Send message",
+      "webhookId": "86eaa509-4362-4234-855b-65d418726f8f",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "oTa43GAZ4x555sPO",
+          "name": "WhatsApp account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}",
+        "contextWindowLength": 50
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        832,
+        560
+      ],
+      "id": "06fee292-863b-4c2f-9733-ae32165a5bac",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "WiXNbWgmPzAxeVuj",
+          "name": "Postgres account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "chat",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Add user to db').item.json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Sophie-output",
+              "fieldValue": "={{ $('AI Agent').item.json.output }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1728,
+        304
+      ],
+      "id": "85ef8e49-4ab8-41b4-8612-409670f998a3",
+      "name": "Update a row",
+      "credentials": {
+        "supabaseApi": {
+          "id": "1YVV6OirJf99WVDY",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "Q&A"
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        1936,
+        560
+      ],
+      "id": "b6686e65-4ca6-41d8-b879-8ecf1b2265f4",
+      "name": "Q&A",
+      "credentials": {
+        "supabaseApi": {
+          "id": "1YVV6OirJf99WVDY",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "Leads-buy",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Lead_full_name",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues0_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Lead_phone_number",
+              "fieldValue": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}"
+            },
+            {
+              "fieldId": "Lead_email_address",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "property_type",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues4_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "property_location",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues5_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "budget",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues6_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "pre_approved_status",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues7_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "purchase_time_line",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues8_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "property_features",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues9_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "lead_qualification_status",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues10_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Reason",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues12_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Lead_goal",
+              "fieldValue": "Buy"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        976,
+        560
+      ],
+      "id": "95209ed2-a8cd-41cc-adcc-583f130ece80",
+      "name": "save-buying-leads",
+      "credentials": {
+        "supabaseApi": {
+          "id": "1YVV6OirJf99WVDY",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "Leads-rent",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Lead_full_name",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues0_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Lead_email_address",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues2_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Lead_phone_number",
+              "fieldValue": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}"
+            },
+            {
+              "fieldId": "Property_type",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues4_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Property_location",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues5_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "monthly_budget",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues6_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Property_features",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues7_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "rent_duration",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues8_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "action_time_line",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues9_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Goal",
+              "fieldValue": "Rent"
+            },
+            {
+              "fieldId": "Lead_qualification_status",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues11_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Reason",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues12_Field_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        560
+      ],
+      "id": "bd91418b-ae4d-4812-bc1f-ff90913c2e7f",
+      "name": "save-renting-leads",
+      "credentials": {
+        "supabaseApi": {
+          "id": "1YVV6OirJf99WVDY",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "Leads-rent",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "Lead_phone_number",
+              "condition": "eq",
+              "keyValue": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Lead_full_name",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues0_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Lead_email_address",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues2_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Property_type",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Property_location",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues4_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "monthly_budget",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues5_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Property_features",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues6_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Lead_qualification_status",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues7_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Goal",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues8_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "action_time_line",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues9_Field_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        560
+      ],
+      "id": "228b687a-0593-48f9-8d22-fd4e63e9986b",
+      "name": "edit-rent-leads",
+      "credentials": {
+        "supabaseApi": {
+          "id": "1YVV6OirJf99WVDY",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "Leads-sell",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "Lead_phone_number",
+              "condition": "eq",
+              "keyValue": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Lead_full_name",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues0_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Lead_email_address",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues2_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Property_type",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Property_location",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues4_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Property_features",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues5_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Price_expectation",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues6_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Action_time",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues7_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Lead_goal",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues8_Field_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        1824,
+        560
+      ],
+      "id": "c857484d-3103-4cc4-a8fd-d154d2e2ba17",
+      "name": "edit-sell-leads",
+      "credentials": {
+        "supabaseApi": {
+          "id": "1YVV6OirJf99WVDY",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "Leads-sell",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Lead_full_name",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues0_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Lead_phone_number",
+              "fieldValue": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}"
+            },
+            {
+              "fieldId": "Lead_email_address",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Property_type",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues4_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Property_location",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues5_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Property_features",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues6_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Price_expectation",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues7_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Action_time",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues8_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Lead_goal",
+              "fieldValue": "Sell"
+            },
+            {
+              "fieldId": "Lead_qualification_status",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues10_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Reason",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues11_Field_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        560
+      ],
+      "id": "a1aa11da-6f61-4c0d-8b69-94a5ce8ed116",
+      "name": "save-selling-leads",
+      "credentials": {
+        "supabaseApi": {
+          "id": "1YVV6OirJf99WVDY",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "Leads-buy",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "Lead_phone_number",
+              "condition": "eq",
+              "keyValue": "={{ $('WhatsApp Trigger').item.json.messages[0].from }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "Lead_email_address",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues0_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "property_type",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues1_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "property_location",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues2_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "budget",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues3_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "pre_approved_status",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues4_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "purchase_time_line",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues5_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "property_features",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues6_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Lead_goal",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues7_Field_Value', ``, 'string') }}"
+            },
+            {
+              "fieldId": "Lead_full_name",
+              "fieldValue": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('fieldValues8_Field_Value', ``, 'string') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        1696,
+        560
+      ],
+      "id": "93055964-a149-4057-8324-81a142a7c8fd",
+      "name": "edit-buy-leads",
+      "credentials": {
+        "supabaseApi": {
+          "id": "1YVV6OirJf99WVDY",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "Properties"
+      },
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        560
+      ],
+      "id": "2ac7b518-e7c1-49ee-aa03-2e608b128ecf",
+      "name": "get-property",
+      "credentials": {
+        "supabaseApi": {
+          "id": "1YVV6OirJf99WVDY",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "mohamedrahili136@gmail.com",
+          "mode": "list",
+          "cachedResultName": "mohamedrahili136@gmail.com"
+        },
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1104,
+        736
+      ],
+      "id": "65952c76-658a-465d-8602-5b1cb54883a6",
+      "name": "book-tool",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "rF9zrES62Tn3wcCf",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "calendar": {
+          "__rl": true,
+          "value": "mohamedrahili136@gmail.com",
+          "mode": "list",
+          "cachedResultName": "mohamedrahili136@gmail.com"
+        },
+        "eventId": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Event_ID', ``, 'string') }}",
+        "updateFields": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        1472,
+        736
+      ],
+      "id": "e7de3261-4c09-48ee-b3a3-8d4559271a8d",
+      "name": "edit-booking",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "rF9zrES62Tn3wcCf",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v23.0/705231139341318/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"status\": \"read\",\n  \"message_id\": \"{{ $json.messages[0].id }}\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -32,
+        320
+      ],
+      "id": "47a3f1c1-7ef7-4100-895b-0ae47673b463",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JANFaQ0IzaLd6Ntx",
+          "name": "Header Auth account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v23.0/705231139341318/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"status\": \"read\",\n  \"message_id\": \"{{ $('WhatsApp Trigger').item.json.messages[0].id }}\",\n  \"typing_indicator\": {\n    \"type\": \"text\"\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1392,
+        304
+      ],
+      "id": "2dcbb846-df68-498e-b0ef-be4ea71b799f",
+      "name": "HTTP Request1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JANFaQ0IzaLd6Ntx",
+          "name": "Header Auth account 2"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add user to db": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input type": {
+      "main": [
+        [
+          {
+            "node": "Get Audio Url",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Not supported",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Audio": {
+      "main": [
+        [
+          {
+            "node": "Transcribe Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe Audio": {
+      "main": [
+        [
+          {
+            "node": "Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Audio": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Audio Url": {
+      "main": [
+        [
+          {
+            "node": "Download Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Add user to db",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message": {
+      "main": [
+        [
+          {
+            "node": "Update a row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a row": {
+      "main": [
+        []
+      ]
+    },
+    "Q&A": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save-buying-leads": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save-renting-leads": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "edit-rent-leads": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "edit-sell-leads": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "save-selling-leads": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "edit-buy-leads": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get-property": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "book-tool": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "edit-booking": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Input type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Send message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "698d9894576bc3605393e52d2384bc9b5fd351cff74f45ee394c3b015afd6266"
+  }
+}
