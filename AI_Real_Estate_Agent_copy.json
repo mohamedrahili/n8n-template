@@ -1,0 +1,2790 @@
+{
+  "name": "AI Real Estate Agent copy",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "2e79c57d-dd1d-4a57-bd47-a972c8f90873",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        -840
+      ],
+      "id": "416dd006-5835-43de-a658-5b07034d0d85",
+      "name": "Webhook",
+      "webhookId": "2e79c57d-dd1d-4a57-bd47-a972c8f90873"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Based on the leadform submission create a greeting message similar to this one; \"Hi Alessandro, I'm Jessica. As we discussed in the webchat, here are matching luxury villas in Marbella around your budget of 1 million:\"\n\nLead form details: \"name: {{ $('LeadData').item.json.Name }}, budget: {{ $('LeadData').item.json.Budget }}, phone: {{ $('LeadData').item.json.Phone }}, email: {{ $('LeadData').item.json.Email }}, summary: {{ $('LeadData').item.json.Summary }}\"\n\nIt should be like this always: \"Hi Alessandro, I'm Jessica. As we discussed in the webchat, here are matching luxury villas in Marbella around your budget of 1 million:\"\n\nDo not talk about resell",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        2900,
+        -600
+      ],
+      "id": "fbb9dc10-aa6a-4f29-bf5d-c297d86c42c6",
+      "name": "AI WhatsApp Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a Property Search Agent running in an n8n workflow.\n\nYour Objective:\n• Find relevant property listings via Odoo’s JSON‑RPC API.\n\nTool Available:\n• httpRequest — use this tool to send POST requests to the Odoo JSON‑RPC endpoint.\n\nDOMAIN TO USE IS HERE: \"{{ $json.domain }}\"\n\nProcess:\n1. Receive the input domain as an array of filters, for example:\n   [\n     [\"type_id\",\"=\",101],\n     [\"name\",\"ilike\",\"nerja\"],\n     [\"bedrooms\",\"=\",3],\n     [\"list_price\",\"<=\",600000]\n   ]\n\n2. To perform a search, call the httpRequest tool once with exactly this payload:\n{ \"url\": \"https://YOUR_ODOO_URL/jsonrpc\", \"method\": \"POST\", \"headers\": { \"Content-Type\": \"application/json\" }, \"body\": { \"jsonrpc\": \"2.0\", \"method\": \"call\", \"params\": { \"model\": \"property.property\", \"method\": \"search_read\", \"args\": [ DOMAIN ], \"kwargs\": { \"fields\": [ \"id\",\"name\",\"list_price\",\"type_id\",\"bedrooms\",\"bathrooms\", \"build_size\",\"status\",\"city\",\"state_id\",\"street\", \"description\",\"main_img_url\" ], \"limit\": 3 } }, \"id\": 1 } }\n\ncsharp\nCopy\nEdit\n– **DOMAIN** must be the single-element array wrapping your filters array (e.g. `[ [ …filters… ] ]`).\n\n3. Inspect the response:\n- If `result` is non‑empty, return:\n  ```\n  { \"domain\": DOMAIN, \"results\": RESPONSE.result }\n  ```\n- If empty, apply these fallbacks **in order**, retrying the exact same httpRequest call each time:\n  a) Remove the `[\"bedrooms\", ...]` filter  \n  b) Then remove the `[\"name\",\"ilike\", ...]` filter  \n  c) Then search **only** by `[\"type_id\", ...]`\n\n4. Stop as soon as you get any results and return the JSON above.\n\nAvailable Property Types: 156, 93, 94, 96, 97, 99, 101, 102, 103, 105  \nSpecial Cases:  \n• If type_id=100, use 101 instead  \n• If type_id=90, use 156 instead  \n\n**IMPORTANT:** Respond **only** with your calls to the httpRequest tool (with the correctly formatted JSON body) and, once successful, the final JSON result object.\n\n# Output Format\nAlways respond with raw JSON only.\nDo not wrap your output in triple backticks (```).\nDo not use markdown formatting.\nReturn only a valid JSON object like this:\n\n{\n  \"domain\": [ [ ...filters... ] ],\n  \"results\": [ ... ]\n}\n\nAdditional information of the lead: \"{{ $('Airtable1').item.json.fields.Transcript }}, name:{{ $('Airtable1').item.json.fields.Name }}, budget: {{ $('Airtable1').item.json.fields.Budget }}\" \n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        3020,
+        -200
+      ],
+      "id": "322fdddc-8efe-4478-b771-3778dd28c690",
+      "name": "AI Email Agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get parsed data from the Code node\nconst parsedData = $input.first().json;\n\n// ⚠️ FIX HERE:\nconst leadData = parsedData.leadData || {};  // Not parsedData.data\n\n// Set fixed values for luxury villas in Marbella\nconst location = \"marbella\";\nconst propertyTypeId = 156; // Detached Villa\n\n// Parse budget if available\nlet maxPrice = null;\nif (leadData.budget) {\n  const budgetString = String(leadData.budget).toLowerCase();\n  \n  if (budgetString.includes(\"million\") || budgetString.includes(\"m\")) {\n    const millionMatch = budgetString.match(/(\\d+(\\.\\d+)?)\\s*(million|m)/i);\n    if (millionMatch) {\n      maxPrice = parseFloat(millionMatch[1]) * 1000000;\n    }\n  } else {\n    const numericValue = parseFloat(budgetString.replace(/[^0-9.]/g, ''));\n    if (!isNaN(numericValue)) {\n      maxPrice = numericValue < 10000 ? numericValue * 1000000 : numericValue;\n    }\n  }\n}\n\n// Build the domain for Odoo\nconst dynamicDomain = [\n  [\"type_id\", \"=\", propertyTypeId],\n  [\"name\", \"ilike\", location]\n];\n\nif (maxPrice !== null) {\n  dynamicDomain.push([\"list_price\", \"<=\", maxPrice]);\n}\n\n// ✅ Now this will have the correct data:\nreturn [{\n  domain: dynamicDomain,\n  whatsappData: {\n    to: leadData.phone || \"\",\n    clientName: leadData.name || \"Client\",\n    clientPhone: leadData.phone || \"\",\n    clientEmail: leadData.email || \"\"\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4020,
+        -600
+      ],
+      "id": "c157c330-0fe4-4a5b-9dbc-18709ba79d76",
+      "name": "Format domain"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [
+        2940,
+        -380
+      ],
+      "id": "8eead022-b43d-4870-b699-8637d05e8f62",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "A4zASjA3hJUUFd5d",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [
+        2980,
+        20
+      ],
+      "id": "87a9ecbb-0bd7-47d6-ac6b-001ff4deb18c",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "A4zASjA3hJUUFd5d",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('LeadData').item.json.Email }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        3600,
+        -200
+      ],
+      "id": "ffde43de-300d-439f-909c-0366beb9a42e",
+      "name": "Gmail",
+      "webhookId": "0a97b65b-ac9d-40c4-b804-276faf003787",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "76WXtsPVcL0AWwPh",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "C08L8MSEMQT",
+          "mode": "list",
+          "cachedResultName": "all-revai"
+        },
+        "text": "=🌐 New Webform submission\nName: {{ $('Webhook').item.json.body.Name }}\nPhone number: {{ $('Webhook').item.json.body.Phone }}\nEmail: {{ $('Webhook').item.json.body.Email }}\nBudget: {{ $('Webhook').item.json.body.Budget }}\nWeb form transcript: {{ $('Webhook').item.json.body.Summary }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [
+        3840,
+        -200
+      ],
+      "id": "e640c9b8-99a1-4614-8c9f-436571bdd4e0",
+      "name": "Slack1",
+      "webhookId": "ed7a36a8-33f4-4ced-9c1d-76e2eed67fd1",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "UeSkpdMu42uOq2y5",
+          "name": "Slack account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Access the input data\nconst inputData = $input.first().json;\nconst leadFormData = $('LeadData').first().json;\nconst leadData = leadFormData.leadData || {};\n\n// Check if the input has the expected structure\nif (inputData && inputData.jsonrpc === \"2.0\" && Array.isArray(inputData.result)) {\n  const properties = inputData.result;\n  \n  // Format the properties\n  let formattedContent = \"Great! Here are some properties that match your criteria:\\n\\n\";\n  \n  // Add the [PROPERTY_DATA] placeholder at the beginning before the property loop\n  formattedContent += \"[PROPERTY_DATA]\\n\\n\";\n  \n  properties.forEach((prop, index) => {\n    // Use the first line of description or a default if not available\n    const briefDescription = prop.description \n      ? prop.description.split('\\r\\n')[0] \n      : \"Beautiful property in a prime location\";\n      \n    // Get property location either from property data or lead data\n    const location = prop.location || leadData.location || \"Premium location\";\n    \n    formattedContent += `${index + 1}. **${prop.name}**\\n`;\n    formattedContent += `   - **Price:** €${prop.list_price.toLocaleString()}\\n`;\n    formattedContent += `   - **Bedrooms:** ${prop.bedrooms}\\n`;\n    formattedContent += `   - **Bathrooms:** ${prop.bathrooms}\\n`;\n    formattedContent += `   - **Location:** ${location}\\n`;\n    formattedContent += `   - **Description:** ${briefDescription}\\n`;\n    \n    // Only add image if there's a URL available\n    if (prop.main_img_url) {\n      formattedContent += `   ![Property Image](${prop.main_img_url})\\n\\n`;\n    } else {\n      formattedContent += `\\n`;\n    }\n  });\n  \n  formattedContent += \"Let me know if you'd like more information about any of these properties or if you'd like to arrange a viewing!\";\n  \n  // Return the formatted content in n8n's expected format\n  return [{ json: { output: formattedContent } }];\n} else {\n  // Return default message if the structure is invalid or no properties are found\n  return [{ json: { output: \"I'm sorry, I couldn't find any properties matching your criteria at the moment. Would you like to try with different parameters?\" } }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4640,
+        -600
+      ],
+      "id": "237900c2-35c3-4f93-b4c0-8a6512f8fc89",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v22.0/584235344774850/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer APIKEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.whatsapp }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5000,
+        -600
+      ],
+      "id": "9d447afa-858f-4bc7-ad93-2bcb02f51117",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// This is the main n8n code that processes all items\nconst items = [];\n// Process each input item\nfor (const item of $input.all()) {\n  // Get the message from the AI WhatsApp Agent node\n  const messageData = item.json;\n  \n  // Extract the output text from the AI response\n  let messageContent = \"\";\n  if (Array.isArray(messageData) && messageData[0] && messageData[0].output) {\n    messageContent = messageData[0].output;\n  } else if (messageData && messageData.output) {\n    messageContent = messageData.output;\n  } else {\n    // Default message if structure is unexpected\n    messageContent = \"Thank you for your message. Our agent will be in touch shortly.\";\n  }\n  \n  // Get the phone number from the Webhook\n  const phoneNumber = $('Webhook').first().json.body.Phone;\n  \n  // Create the WhatsApp message format\n  const whatsappMessage = {\n    \"whatsapp\": {\n      \"messaging_product\": \"whatsapp\",\n      \"to\": phoneNumber,\n      \"type\": \"text\",\n      \"text\": {\n        \"body\": messageContent\n      }\n    }\n  };\n  \n  // Push to output items array with the proper format n8n expects\n  items.push({ json: whatsappMessage });\n}\n// Return the processed items\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3600,
+        -600
+      ],
+      "id": "88a9bb15-458f-4ffd-b1c5-fe1ab3098f14",
+      "name": "Greeting WhatsApp"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v22.0/584235344774850/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer APIKEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.whatsapp }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3820,
+        -600
+      ],
+      "id": "de5eaddb-5d1a-4910-9620-64cf835c8cbb",
+      "name": "Send WhatsApp Greeting"
+    },
+    {
+      "parameters": {
+        "jsCode": "// The incoming data is already an array with one object\n// The body field within that object contains the data we want to access\nconst incomingData = items[0].json;\n\n// Check if incomingData is already an object or needs parsing\nlet processedData;\nif (typeof incomingData === 'string') {\n  // If the data is a string, parse it\n  processedData = JSON.parse(incomingData);\n} else {\n  // If the data is already an object, use it directly\n  processedData = incomingData;\n}\n\n// Access the body directly from the first item in the array\n// The body already contains the fields we need\nreturn [\n  {\n    json: processedData.body\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1480,
+        -840
+      ],
+      "id": "1b815c02-cb64-4760-9701-a6786cc6b731",
+      "name": "LeadData"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "DATABASELINK",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"call\",\n  \"params\": {\n    \"db\": \"\",\n    \"login\": \"\",\n    \"password\": \"\"\n  },\n  \"id\": 1\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4240,
+        -600
+      ],
+      "id": "d86e1371-c910-4fa9-9e69-a78915d0994e",
+      "name": "Authentication"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Access the formatted property data from previous node\nconst formattedData = $input.first().json.output;\n\n// Set the correct phone number - properly formatted for WhatsApp\nconst phoneNumber = $('LeadData').first().json.Phone;  // Removed the quotes around the expression\n\n// Create array for WhatsApp messages\nconst messages = [];\n\n// Add intro message\nmessages.push({\n  json: {\n    whatsapp: {\n      messaging_product: \"whatsapp\",\n      to: phoneNumber,\n      type: \"text\",\n      text: {\n        body: \"Based on what you're looking for, here are great options I found:\"\n      }\n    }\n  }\n});\n\n// Extract property data using regex\nconst propertyRegex = /\\d+\\.\\s+\\*\\*(.*?)\\*\\*\\n\\s+- \\*\\*Price:\\*\\* (.*?)\\n\\s+- \\*\\*Bedrooms:\\*\\* (.*?)\\n\\s+- \\*\\*Bathrooms:\\*\\* (.*?)\\n\\s+- \\*\\*Location:\\*\\* (.*?)\\n\\s+- \\*\\*Description:\\*\\* (.*?)\\n\\s+!\\[Property Image\\]\\((.*?)\\)/g;\n\n// Find all property matches\nlet match;\nwhile ((match = propertyRegex.exec(formattedData)) !== null) {\n  const [\n    ,\n    title,\n    price,\n    bedrooms,\n    bathrooms,\n    location,\n    description,\n    imageUrl\n  ] = match;\n  \n  // Create clean caption for WhatsApp\n  const caption = `${title} - ${price}, ${bedrooms} beds, ${bathrooms} baths`;\n  \n  // Add image message with the correct structure\n  messages.push({\n    json: {\n      whatsapp: {\n        messaging_product: \"whatsapp\",\n        to: phoneNumber,\n        type: \"image\",\n        image: {\n          link: imageUrl,\n          caption\n        }\n      }\n    }\n  });\n}\n\n// Return array of message items (no outro message)\nreturn messages;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4800,
+        -600
+      ],
+      "id": "fdcaa848-c928-43d4-b7af-68b31d0f4840",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "DATABASE LINK",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Cookie",
+              "value": "session_id=APIKEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"call\",\n  \"params\": {\n    \"model\": \"property.property\",\n    \"method\": \"search_read\",\n    \"args\": {{ JSON.stringify([$('Format domain').item.json.domain]) }},\n    \"kwargs\": {\n      \"fields\": [\"id\", \"name\", \"list_price\", \"type_id\", \"bedrooms\", \"bathrooms\", \"build_size\", \"status\", \"city\", \"state_id\", \"street\", \"description\", \"main_img_url\"],\n      \"limit\": 3\n    }\n  },\n  \"id\": 1\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4460,
+        -600
+      ],
+      "id": "270059f5-170c-45ff-a259-80e5e8b82369",
+      "name": "Fetch property"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get parsed data from the Code node\nconst parsedData = $input.first().json;\n\n// ⚠️ FIX HERE:\nconst leadData = parsedData.leadData || {};  // Not parsedData.data\n\n// Set fixed values for luxury villas in Marbella\nconst location = \"marbella\";\nconst propertyTypeId = 156; // Detached Villa\n\n// Parse budget if available\nlet maxPrice = null;\nif (leadData.budget) {\n  const budgetString = String(leadData.budget).toLowerCase();\n  \n  if (budgetString.includes(\"million\") || budgetString.includes(\"m\")) {\n    const millionMatch = budgetString.match(/(\\d+(\\.\\d+)?)\\s*(million|m)/i);\n    if (millionMatch) {\n      maxPrice = parseFloat(millionMatch[1]) * 1000000;\n    }\n  } else {\n    const numericValue = parseFloat(budgetString.replace(/[^0-9.]/g, ''));\n    if (!isNaN(numericValue)) {\n      maxPrice = numericValue < 10000 ? numericValue * 1000000 : numericValue;\n    }\n  }\n}\n\n// Build the domain for Odoo\nconst dynamicDomain = [\n  [\"type_id\", \"=\", propertyTypeId],\n  [\"name\", \"ilike\", location]\n];\n\nif (maxPrice !== null) {\n  dynamicDomain.push([\"list_price\", \"<=\", maxPrice]);\n}\n\n// ✅ Now this will have the correct data:\nreturn [{\n  domain: dynamicDomain,\n  whatsappData: {\n    to: leadData.phone || \"\",\n    clientName: leadData.name || \"Client\",\n    clientPhone: leadData.phone || \"\",\n    clientEmail: leadData.email || \"\"\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2680,
+        -200
+      ],
+      "id": "822f24fd-37f4-43f1-9d21-ff023d8c745f",
+      "name": "Format domain1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiOutputRaw = $input.first().json.output;\nconst aiOutputParsed = typeof aiOutputRaw === 'string' ? JSON.parse(aiOutputRaw) : aiOutputRaw;\n\nconst properties = aiOutputParsed.results || [];\n\n// === Get Client Info from LeadData Node ===\nconst leadDataNode = Array.isArray($node[\"LeadData\"].json)\n  ? $node[\"LeadData\"].json[0]\n  : $node[\"LeadData\"].json;\n\nconst leadData = leadDataNode.leadData || {};\n\nconst clientName =\n  leadData.name ||\n  $node[\"LeadData\"].json.name ||\n  $node[\"LeadData\"].json.Name ||\n  \"Valued Client\";\n\nconst clientEmail =\n  leadData.email ||\n  $node[\"LeadData\"].json.email ||\n  $node[\"LeadData\"].json.Email ||\n  \"info@buymarbellavilla.com\";\n\n// === Build Property Cards ===\nlet propertiesHtml = '';\n\nif (properties.length === 0) {\n  propertiesHtml = `<p style=\"text-align:center; color:#555;\">Sorry, no matching properties were found at this time. We'll keep looking and send updates soon.</p>`;\n} else {\n  properties.slice(0, 3).forEach(property => {\n    const formattedPrice = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(property.list_price);\n    const address = property.city || (property.name.includes('for sale in') ? property.name.split('for sale in')[1].trim() : 'Address not available');\n    const shortDescription = property.description\n      ? property.description.replace(/\\r\\n/g, ' ').replace(/\\s+/g, ' ').substring(0, 300) + '...'\n      : 'No description available';\n    propertiesHtml += `\n      <div class=\"property-card\">\n        <img src=\"${property.main_img_url}\" alt=\"${property.name}\" class=\"property-image\">\n        <div class=\"property-details\">\n          <div class=\"property-price\">${formattedPrice}</div>\n          <div class=\"property-address\">${address}</div>\n          <div class=\"property-description\">${shortDescription}</div>\n          <a href=\"https://crm.nusunrealty.com/property/${property.id}\" class=\"button\" target=\"_blank\">View Property</a>\n        </div>\n      </div>\n    `;\n  });\n}\n\n// === Build Email HTML ===\nconst emailHtml = `\n<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Luxury Villas in Marbella | Your Property Selection</title>\n  <style>\n    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f8f8f8; margin: 0; padding: 0; color: #333; }\n    .container { max-width: 800px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }\n    .header { background: linear-gradient(135deg, #0A2540 0%, #264580 100%); color: white; text-align: center; padding: 50px 20px; }\n    .header img { max-width: 180px; margin-bottom: 20px; }\n    .header h1 { margin: 0; font-size: 34px; }\n    .header p { margin: 10px 0 0; font-size: 16px; }\n    .intro { padding: 30px 20px; text-align: center; }\n    .intro h2 { font-size: 24px; margin-bottom: 10px; color: #222; }\n    .intro p { font-size: 16px; color: #555; }\n    .properties { display: flex; flex-wrap: wrap; justify-content: space-between; padding: 20px; }\n    .property-card { width: 48%; background-color: #fff; border: 1px solid #eee; border-radius: 10px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); transition: transform 0.3s ease; }\n    .property-card:hover { transform: translateY(-5px); box-shadow: 0 6px 15px rgba(0,0,0,0.1); }\n    .property-image { width: 100%; height: 200px; object-fit: cover; }\n    .property-details { padding: 15px; }\n    .property-price { font-size: 18px; font-weight: bold; color: #0A2540; margin: 10px 0; }\n    .property-address { font-size: 16px; color: #333; margin-bottom: 10px; }\n    .property-description { font-size: 14px; color: #666; margin-bottom: 15px; }\n    .button { display: inline-block; padding: 12px 24px; background: linear-gradient(135deg, #0A2540, #264580); color: #fff !important; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 10px; transition: background 0.3s ease; }\n    .button:hover { background: linear-gradient(135deg, #264580, #0A2540); }\n    .footer { text-align: center; padding: 20px; background-color: #f0f0f0; font-size: 12px; color: #777; }\n    .footer a { color: #0A2540; text-decoration: none; }\n    @media (max-width: 600px) {\n      .property-card { width: 100%; }\n    }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <img src=\"https://i.imgur.com/92AlIit.png\" alt=\"Buy Marbella Villa Logo\">\n      <h1>Luxury Villas in Marbella</h1>\n      <p>Discover Your Dream Mediterranean Estate</p>\n    </div>\n    <div class=\"intro\">\n      <h2>Hello ${clientName}, Here Are Your Personalized Property Recommendations</h2>\n      <p>We've handpicked these exclusive properties based on your preferences.</p>\n    </div>\n    <div class=\"properties\">\n      ${propertiesHtml}\n    </div>\n    <div class=\"footer\">\n      <p>© 2025 Buy Marbella Villa. All rights reserved.</p>\n      <p><a href=\"mailto:info@buymarbellavilla.com\">info@buymarbellavilla.com</a> | <a href=\"tel:+34644900442\">+34 644 900 442</a></p>\n    </div>\n  </div>\n</body>\n</html>\n`;\n\n// === Return the Email Object ===\nreturn [{\n  to: clientEmail,\n  subject: \"Your Personalized Property Recommendations | Buy Marbella Villa\",\n  html: emailHtml\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3380,
+        -200
+      ],
+      "id": "a70c9a0c-20e5-4fbc-b369-8b53c58e358b",
+      "name": "Format HTLM"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "DATABASE URL",
+        "sendHeaders": true,
+        "parametersHeaders": {
+          "values": [
+            {
+              "name": "Cookie",
+              "valueProvider": "fieldValue",
+              "value": "session_id=APIKEY"
+            },
+            {
+              "name": "Content-Type",
+              "valueProvider": "fieldValue",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "model"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        3320,
+        20
+      ],
+      "id": "610455c6-0371-4199-a5b6-8ee32106a286",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "67618ce9-646d-4dfc-9671-f14937c96d23",
+              "leftValue": "={{ $('AI Agent').item.json.output }}",
+              "rightValue": "YES",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1940,
+        -580
+      ],
+      "id": "d3061091-a2dd-4cc5-8185-c69a25302802",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "base": {
+          "__rl": true,
+          "value": "appCLkgPmQHURFrqy",
+          "mode": "list",
+          "cachedResultName": "buymarbellavilla.com",
+          "cachedResultUrl": "https://airtable.com/appCLkgPmQHURFrqy"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl8Xxxwtgn3pdM1Y",
+          "mode": "list",
+          "cachedResultName": "CRM",
+          "cachedResultUrl": "https://airtable.com/appCLkgPmQHURFrqy/tbl8Xxxwtgn3pdM1Y"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Properties have been sent": false,
+            "Name": "={{ $('LeadData').item.json.Name }}",
+            "Budget": "={{ $('LeadData').item.json.Budget }}",
+            "Phone": "={{ $('LeadData').item.json.Phone }}",
+            "Email": "={{ $('LeadData').item.json.Email }}",
+            "Transcript": "={{ $('LeadData').item.json.Summary }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Submission date",
+              "displayName": "Submission date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Budget",
+              "displayName": "Budget",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Properties have been sent",
+              "displayName": "Properties have been sent",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Transcript",
+              "displayName": "Transcript",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        2320,
+        -480
+      ],
+      "id": "a6587a4d-ff27-4f28-8112-c2593fa5f3d7",
+      "name": "Airtable1",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "mTnZWVwW4qzOwuIx",
+          "name": "Airtable Personal Access Token account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://api.airtable.com/v0/appCLkgPmQHURFrqy/tbl8Xxxwtgn3pdM1Y",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer APIKEY"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1660,
+        -840
+      ],
+      "id": "a8488e78-fe42-4d28-baff-d89a12e70148",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Your purpose is to review this information: \"{{ JSON.stringify($json.records) }}\n\" \n\n\n\nif there is any lead data such as the name and phone number that match this information: \"{{ $('LeadData').item.json.Name }}, {{ $('LeadData').item.json.Budget }}, {{ $('LeadData').item.json.Phone }}, {{ $('LeadData').item.json.Email }}\" then you will need to output \"YES\" if not then output \"NO\"\n\nPlease also output separately the record ID of the matching information if it is matching. \n\nONLY OUTPUT YES OR NO DO NOT EXPLAIN WHAT YOU'RE DOING. \n\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1860,
+        -840
+      ],
+      "id": "ed5a7baa-e00e-4a9c-80df-834cc3eb6c2b",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [
+        1840,
+        -700
+      ],
+      "id": "35ac9f58-0a18-4610-b900-bd92f5dc214e",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "A4zASjA3hJUUFd5d",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "base": {
+          "__rl": true,
+          "value": "appCLkgPmQHURFrqy",
+          "mode": "list",
+          "cachedResultName": "buymarbellavilla.com",
+          "cachedResultUrl": "https://airtable.com/appCLkgPmQHURFrqy"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl8Xxxwtgn3pdM1Y",
+          "mode": "list",
+          "cachedResultName": "CRM",
+          "cachedResultUrl": "https://airtable.com/appCLkgPmQHURFrqy/tbl8Xxxwtgn3pdM1Y"
+        },
+        "id": "=",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        2980,
+        -1000
+      ],
+      "id": "afa78f4d-cc66-43c4-a945-0a0542008138",
+      "name": "Airtable",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "mTnZWVwW4qzOwuIx",
+          "name": "Airtable Personal Access Token account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Just output the record id: \"{{ $('AI Agent').item.json.output }}\"\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        2600,
+        -1000
+      ],
+      "id": "02fa49cf-0252-4b35-aff3-8b44668f4d0d",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "A4zASjA3hJUUFd5d",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Based on this transcript: \"{{ $json.Transcript }}\" you must create a new message which will be sent via whatsapp saying that we have received their new request in the webchat and aks them if they have any questions about the properties we have sent them. \n\nJust output the message nothing else. ",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        3200,
+        -1000
+      ],
+      "id": "56838bfd-7831-4edb-92cc-915bc06b0c36",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [
+        3240,
+        -780
+      ],
+      "id": "b85b9d1c-e6a8-4099-91cc-a3bf04a7569d",
+      "name": "OpenAI Chat Model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "A4zASjA3hJUUFd5d",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// This is the main n8n code that processes all items\nconst items = [];\n// Process each input item\nfor (const item of $input.all()) {\n  // Get the message from the AI WhatsApp Agent node\n  const messageData = item.json;\n  \n  // Extract the output text from the AI response\n  let messageContent = \"\";\n  if (Array.isArray(messageData) && messageData[0] && messageData[0].output) {\n    messageContent = messageData[0].output;\n  } else if (messageData && messageData.output) {\n    messageContent = messageData.output;\n  } else {\n    // Default message if structure is unexpected\n    messageContent = \"Thank you for your message. Our agent will be in touch shortly.\";\n  }\n  \n  // Create the WhatsApp message format\n  const whatsappMessage = {\n    \"whatsapp\": {\n      \"messaging_product\": \"whatsapp\",\n      \"to\": $('LeadData').first().json.Phone,  // Removed the quotes\n      \"type\": \"text\",\n      \"text\": {\n        \"body\": messageContent\n      }\n    }\n  };\n  \n  // Push to output items array with the proper format n8n expects\n  items.push({ json: whatsappMessage });\n}\n// Return the processed items\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3560,
+        -1000
+      ],
+      "id": "a3a1c483-5097-4ae3-b4e6-9fca321240ea",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v22.0/584235344774850/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer APIKEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.whatsapp }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3780,
+        -1000
+      ],
+      "id": "2facf710-39c2-4167-8e98-ba12cd9d6a2d",
+      "name": "Respark interested"
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "=pixelnest:users:{{ $('LeadData').item.json.leadData.phone }}:history",
+        "messageData": "=AI Agent: \"{{ $('AI Agent1').item.json.output }}\""
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        4000,
+        -1000
+      ],
+      "id": "e46e08f8-3da9-49df-aecd-6b2cb87c378c",
+      "name": "Redis",
+      "credentials": {
+        "redis": {
+          "id": "tmOTqUefQgtWJBl4",
+          "name": "Redis account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "=pixelnest:users:{{ $('LeadData').item.json.Phone }}:history",
+        "messageData": "=AI Agent: \"{{ $json.output }}\""
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        5220,
+        -820
+      ],
+      "id": "c6fad8f5-ef6b-4668-a8ab-9609305dfb56",
+      "name": "Redis1",
+      "credentials": {
+        "redis": {
+          "id": "tmOTqUefQgtWJBl4",
+          "name": "Redis account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "=pixelnest:users:{{ $json.output }}:history",
+        "messageData": "=Webchat conversation: \"{{ $('Webhook').item.json.body.Summary }}\""
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        -580
+      ],
+      "id": "02ed791a-9094-4871-9cbb-a08936c6096e",
+      "name": "Redis2",
+      "credentials": {
+        "redis": {
+          "id": "tmOTqUefQgtWJBl4",
+          "name": "Redis account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "=pixelnest:users:{{ $('AI Agent6').item.json.output }}:history",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1760,
+        -580
+      ],
+      "id": "9129d16f-b6d2-41a3-a9d4-c249fd0851e6",
+      "name": "Redis3",
+      "credentials": {
+        "redis": {
+          "id": "tmOTqUefQgtWJBl4",
+          "name": "Redis account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v22.0/584235344774850/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer APIKEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.whatsapp }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5660,
+        -540
+      ],
+      "id": "e81c72f7-970f-4c5b-a792-699dab232bb4",
+      "name": "Message after property"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Hardcoded WhatsApp message body (send only once)\nconst whatsappMessage = {\n  \"whatsapp\": {\n    \"messaging_product\": \"whatsapp\",\n    \"to\": $('LeadData').first().json.Phone,  // Removed the quotes around the expression\n    \"type\": \"text\",\n    \"text\": {\n      \"body\": \"Any of these properties catch your eye? Or do you have any questions?\"  // <-- Hardcoded message here\n    }\n  }\n};\n\n// Return only one output item\nreturn [{ json: whatsappMessage }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5220,
+        -600
+      ],
+      "id": "81307237-3ba8-481d-a47d-17c2a65b38c4",
+      "name": "Message after property shown"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "base": {
+          "__rl": true,
+          "value": "appCLkgPmQHURFrqy",
+          "mode": "list",
+          "cachedResultName": "buymarbellavilla.com",
+          "cachedResultUrl": "https://airtable.com/appCLkgPmQHURFrqy"
+        },
+        "table": {
+          "__rl": true,
+          "value": "tbl8Xxxwtgn3pdM1Y",
+          "mode": "list",
+          "cachedResultName": "CRM",
+          "cachedResultUrl": "https://airtable.com/appCLkgPmQHURFrqy/tbl8Xxxwtgn3pdM1Y"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Properties have been sent": true,
+            "Transcript": "={{ $json.message.content }}",
+            "id": "={{ $('Airtable1').item.json.id }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Submission date",
+              "displayName": "Submission date",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Budget",
+              "displayName": "Budget",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Phone",
+              "displayName": "Phone",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Properties have been sent",
+              "displayName": "Properties have been sent",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Transcript",
+              "displayName": "Transcript",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.1,
+      "position": [
+        6080,
+        -820
+      ],
+      "id": "0e428cfa-d1fc-43de-9f7b-895de6d8be14",
+      "name": "Airtable2",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "mTnZWVwW4qzOwuIx",
+          "name": "Airtable Personal Access Token account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "=pixelnest:users:{{ $('LeadData').item.json.Phone }}:history",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        5400,
+        -820
+      ],
+      "id": "55eec3ce-e544-4220-b031-7a6b421a42d4",
+      "name": "Redis4",
+      "credentials": {
+        "redis": {
+          "id": "tmOTqUefQgtWJBl4",
+          "name": "Redis account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = [];\n\nfor (const item of $input.all()) {\n  const messagesArray = item.json.propertyName;\n\n  let transcript = '';\n\n  if (Array.isArray(messagesArray)) {\n    for (let message of messagesArray) {\n      // Check if the message is the final \"Webchat conversation\" stringified JSON\n      if (message.startsWith('Webchat conversation: ')) {\n        try {\n          // Remove the prefix and parse the JSON\n          const jsonString = message.replace('Webchat conversation: ', '');\n          const parsedArray = JSON.parse(jsonString);\n\n          if (Array.isArray(parsedArray) && parsedArray[0]?.leadData) {\n            const lead = parsedArray[0].leadData;\n            const userMessage = parsedArray[0]?.userInfo?.message || '(no message provided)';\n            const timestamp = parsedArray[0]?.timestamp || '(no timestamp)';\n\n            transcript += `User (${lead.name} - ${lead.phone}): ${userMessage} [${timestamp}]\\n`;\n          } else {\n            transcript += '⚠️ Failed to parse webchat conversation data.\\n';\n          }\n        } catch (error) {\n          transcript += '⚠️ Error parsing JSON from webchat conversation.\\n';\n        }\n      } else {\n        // Otherwise, treat as a normal AI Agent message\n        transcript += `${message}\\n`;\n      }\n    }\n  } else {\n    transcript = '⚠️ No messages found.';\n  }\n\n  items.push({ json: { transcript } });\n}\n\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5860,
+        -600
+      ],
+      "id": "4a8fba32-0a85-40fb-a4c9-c45e9c898659",
+      "name": "Code3"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        5440,
+        -600
+      ],
+      "id": "729d327d-96e0-41cb-8c27-17e3964d1c58",
+      "name": "Wait",
+      "webhookId": "395cfca3-f09e-456f-93bf-05b8666d41af"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "e7f03b95-50a3-4079-acf2-1bc7536b8c84",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1380,
+        -1600
+      ],
+      "id": "aa5fc656-206d-49a4-9ca6-9fa1329ebc23",
+      "name": "Webhook1",
+      "webhookId": "e7f03b95-50a3-4079-acf2-1bc7536b8c84"
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "=pixelnest:users:{{ $json.body.sessionId }}:history",
+        "messageData": "=AI Agent: {{ $json.body.botMessage }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1800,
+        -2040
+      ],
+      "id": "2b633a2e-410e-4aca-8ba9-411c8af19133",
+      "name": "Redis5",
+      "credentials": {
+        "redis": {
+          "id": "tmOTqUefQgtWJBl4",
+          "name": "Redis account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "=pixelnest:users:{{ $json.body.sessionId }}:history",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1840,
+        -1600
+      ],
+      "id": "ad26f405-2db2-4351-af11-2f7de02507de",
+      "name": "Redis6",
+      "credentials": {
+        "redis": {
+          "id": "tmOTqUefQgtWJBl4",
+          "name": "Redis account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract the conversation history from the Redis Get Node\nconst conversationData = $input.first().json.propertyName\n\n// Reverse the array to get chronological order (oldest first)\nconversationData.reverse();\n\n// Format each message\nconst formattedConversation = conversationData.map((message, index) => {\n  // Split into speaker and content\n  const parts = message.split(\": \", 2);\n  const speaker = parts[0];\n  const content = parts[1] || \"\"; // Default to empty string if content is undefined\n\n  // Clean up quotes\n  const cleanedContent = content.replace(/\"/g, \"\");\n\n  // Standardize speaker names\n  const formattedSpeaker = speaker.includes(\"Lead\") ? \"Lead\" : \"Real Etsate Agent\";\n\n  // Format as \"index:Speaker: message\"\n  return `${index}:${formattedSpeaker}: ${cleanedContent}`;\n});\n\n// Join into a single string with line breaks\nconst formattedOutput = formattedConversation.join(\"\\n\");\n\n// Return the formatted conversation\nreturn [{ json: { formatted_conversation: formattedOutput } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2140,
+        -1600
+      ],
+      "id": "17056a76-9d3f-4cde-8803-dab32ea29240",
+      "name": "Code4"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are Jessica, an AI real estate assistant for Marbella Luxury Villas. You assist high-end clients looking for villas in Marbella.\n\nBefore responding, take a deep breath and carefully review the **entire conversation transcript** and **conversation state**. Your job is to maintain a warm, natural, luxury consultant tone — never robotic.\n\n---\n\n** DO NOT DO THIS: **\n- Do NOT greet or reintroduce yourself after the first message.\n- Do NOT repeat questions that were already answered.\n- Do NOT skip user questions — always answer them before continuing.\n- Do NOT exceed 250 characters unless needed to explain something.\n\n---\n\n** CONVERSATION STATE: **\n- Budget has been asked: '{{ $json.conversationState.budget_asked }}'  \n- Budget answer: '{{ $json.conversationState.budget_answer }}'  \n- Budget has been answered: '{{ $json.conversationState.budget_answered }}'  \n\n- Timing has been asked: '{{ $json.conversationState.timing_asked }}'  \n- Timing answer: '{{ $json.conversationState.timing_answer }}'  \n- Timing has been answered: '{{ $json.conversationState.timing_answered }}'  \n\n- Phone has been asked: '{{ $json.conversationState.phone_asked }}'  \n- Phone answer: '{{ $json.conversationState.phone_answer }}'  \n- Phone has been answered: '{{ $json.conversationState.phone_answered }}'  \n\n- Email has been asked: '{{ $json.conversationState.email_asked }}'  \n- Email answer: '{{ $json.conversationState.email_answer }}'  \n- Email has been answered: '{{ $json.conversationState.email_answered }}'  \n\n- Client name: 'You need to get it directly from the transcript: \"{{ $('Code4').item.json.formatted_conversation }}\"'  \n- Next conversation step: '{{ $json.conversationState.next_step }}'\n\n---\n\n** CONVERSATION STYLE: **\n- Always speak like a trusted luxury property consultant — warm, respectful, human.\n- Acknowledge or compliment the user's replies (e.g., “Perfect, thank you!” or “That sounds wonderful!”).\n- Use tasteful emojis sparingly — like ✨ ☀️ 🤝 — once every few messages to add warmth.\n- Be brief (50–250 characters) unless answering a more complex question.\n\n---\n\n** RESPONSE RULES: **\n\n1. **Review the full transcript before responding.**\n2. **Start by replying naturally to the user’s most recent message:**\n   - If the user asks a question (e.g., “What’s the purchase process for foreigners?”), answer clearly and professionally.\n   - If the user replied to a previous question, thank or affirm it (“That’s great, thanks!”).\n3. **After responding, follow the conversation flow using `next_step`:**\n\n- **budget** → Ask about their ideal budget range.  \n- **reask_budget** → Reask politely in different words.  \n- **timing** → Ask when they plan to visit Marbella.  \n- **reask_timing** → Gently follow up on visit timing.  \n- **phone** → Ask for their phone number to stay in touch.  \n- **reask_phone** → Kindly reask for the number.  \n- **email** → Ask for their email to send villa options.  \n- **reask_email** → Softly reask for email if missed.  \n- **done** →  \n  - Thank the user warmly.  \n  - Do not ask anything else.  \n  - Example: \"Thanks so much, (ENTER NAME)! I have everything I need and will send you the next steps shortly ✨\"  \n  - **Silently trigger the webhook** (see payload below).\n\n---\n\n** WHEN `next_step = done`, SEND THIS WEBHOOK PAYLOAD: **\n```json\n{\n  \"name\": \"FIND IT DIRECTLY IN THE TRANSCRIPT\",\n  \"summary\": \"{{ $json.conversationState.summary }}\",\n  \"budget\": \"{{ $json.conversationState.budget_answer }}\",\n  \"timing\": \"{{ $json.conversationState.timing_answer }}\",\n  \"phone\": \"{{ $json.conversationState.phone_answer }}\",\n  \"email\": \"{{ $json.conversationState.email_answer }}\"\n}\n\nTHE TRANSCRIPT ALWAYS VERIFY BEFORE SENDING A MESSAGE OR USING A TOOL: \"{{ $('Code4').item.json.formatted_conversation }}\"\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        3080,
+        -1600
+      ],
+      "id": "85a3f762-068a-4a8a-a0a5-311e7fa55858",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [
+        3100,
+        -1380
+      ],
+      "id": "762adcee-0db5-479a-8658-17a437c01f90",
+      "name": "OpenAI Chat Model4",
+      "credentials": {
+        "openAiApi": {
+          "id": "A4zASjA3hJUUFd5d",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "=pixelnest:users:{{ $('Webhook1').item.json.body.sessionId }}:history",
+        "messageData": "=AI Agent: {{ $json.output }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        3420,
+        -1600
+      ],
+      "id": "74bbd78a-d089-4923-aef7-3d44938a77ec",
+      "name": "Redis7",
+      "credentials": {
+        "redis": {
+          "id": "tmOTqUefQgtWJBl4",
+          "name": "Redis account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a Context Manager AI that analyzes conversations between a user and the Real Estate AI agent named Jessica.\n\nYour ONLY job is to extract and provide structured information about what has been discussed in the conversation, especially about budget, visit timing, and collecting contact information.\n\nAnalyze the conversation and determine:\n1. Has the budget question been asked? If so, what was the user's response (ANY response counts, even vague ones)\n2. Has the visit timing question been asked? If so, what was the user's response (ANY response counts, even vague ones)\n3. Has the phone number been asked and answered?\n4. Has the email address been asked and answered?\n\nFormat your output EXACTLY like this – with NO markdown formatting, NO code blocks, and NO extra text – just the raw JSON:\n\n{\n  \"summary\": \"Brief 1-2 sentence summary of the conversation\",\n  \"budget_asked\": true/false,\n  \"budget_answer\": \"Exact user's answer about budget (or 'not asked yet' if not discussed)\",\n  \"budget_answered\": true/false,\n  \"timing_asked\": true/false,\n  \"timing_answer\": \"Exact user's answer about timing (or 'not asked yet' if not discussed)\",\n  \"timing_answered\": true/false,\n  \"phone_asked\": true/false,\n  \"phone_answer\": \"Exact user's answer about phone number (or 'not asked yet' if not discussed)\",\n  \"phone_answered\": true/false,\n  \"email_asked\": true/false,\n  \"email_answer\": \"Exact user's answer about email (or 'not asked yet' if not discussed)\",\n  \"email_answered\": true/false,\n  \"next_step\": \"budget\" OR \"timing\" OR \"phone\" OR \"email\" OR \"reask_budget\" OR \"reask_timing\" OR \"reask_phone\" OR \"reask_email\" OR \"done\"\n}\n\nIMPORTANT RULES:\n- A question is only considered \"answered\" if the user's response directly addresses it.\n- If the user avoids the question or changes the topic, mark it as not answered.\n- The \"next_step\" is based on what’s missing:\n  * If budget hasn’t been asked → \"budget\"\n  * If budget was asked but not answered → \"reask_budget\"\n  * If budget is answered but timing isn’t asked → \"timing\"\n  * If timing was asked but not answered → \"reask_timing\"\n  * If timing is answered but phone not asked → \"phone\"\n  * If phone was asked but not answered → \"reask_phone\"\n  * If phone is answered but email not asked → \"email\"\n  * If email was asked but not answered → \"reask_email\"\n  * If everything is done → \"done\"\n\nHere is the conversation transcript: \"{{ $json.formatted_conversation }}\"\n\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        2460,
+        -1600
+      ],
+      "id": "98c11eaf-ce9c-43bf-b457-9034853ae611",
+      "name": "AI Agent3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the raw output from AI Agent2\nconst rawOutput = items[0].json.output;\n\n// Function to extract JSON from text (handles markdown code blocks)\nfunction extractJson(text) {\n  try {\n    return JSON.parse(text);\n  } catch (e) {\n    try {\n      const jsonMatch = text.match(/```(?:json)?\\s*([\\s\\S]*?)\\s*```/);\n      if (jsonMatch && jsonMatch[1]) return JSON.parse(jsonMatch[1]);\n\n      const outputMatch = text.match(/\"output\"\\s*:\\s*(\\{[\\s\\S]*\\})/);\n      if (outputMatch && outputMatch[1]) return JSON.parse(outputMatch[1]);\n\n      const objectMatch = text.match(/(\\{[\\s\\S]*\\})/);\n      if (objectMatch && objectMatch[1]) return JSON.parse(objectMatch[1]);\n    } catch (innerError) {\n      console.log(\"Error parsing JSON from AI output:\", innerError);\n    }\n\n    // Fallback default\n    return {\n      summary: \"Conversation in progress\",\n      budget_asked: false,\n      budget_answer: \"not asked yet\",\n      budget_answered: false,\n      timing_asked: false,\n      timing_answer: \"not asked yet\",\n      timing_answered: false,\n      phone_asked: false,\n      phone_answer: \"not asked yet\",\n      phone_answered: false,\n      email_asked: false,\n      email_answer: \"not asked yet\",\n      email_answered: false,\n      next_step: \"budget\"\n    };\n  }\n}\n\n// Extract AI output\nlet conversationState;\ntry {\n  conversationState = extractJson(rawOutput);\n\n  if (conversationState.output) {\n    conversationState = conversationState.output;\n  }\n\n  // Ensure all required fields exist\n  conversationState.budget_answered ??= conversationState.budget_asked && conversationState.budget_answer !== \"not asked yet\";\n  conversationState.timing_answered ??= conversationState.timing_asked && conversationState.timing_answer !== \"not asked yet\";\n  conversationState.phone_answered ??= conversationState.phone_asked && conversationState.phone_answer !== \"not asked yet\";\n  conversationState.email_answered ??= conversationState.email_asked && conversationState.email_answer !== \"not asked yet\";\n\n} catch (error) {\n  console.log(\"Error processing AI output:\", error);\n  conversationState = {\n    summary: \"Conversation in progress\",\n    budget_asked: false,\n    budget_answer: \"not asked yet\",\n    budget_answered: false,\n    timing_asked: false,\n    timing_answer: \"not asked yet\",\n    timing_answered: false,\n    phone_asked: false,\n    phone_answer: \"not asked yet\",\n    phone_answered: false,\n    email_asked: false,\n    email_answer: \"not asked yet\",\n    email_answered: false,\n    next_step: \"budget\"\n  };\n}\n\n// Analyze fallback if AI missed something\nconst conversationText = items[0].json.formatted_conversation || \"\";\n\nconst keywords = {\n  budget: [\"budget\", \"price\", \"cost\", \"afford\", \"max\", \"€\", \"euro\", \"spend\"],\n  timing: [\"visit\", \"when\", \"timing\", \"schedule\", \"date\", \"available\", \"come\", \"travel\"],\n  phone: [\"phone\", \"mobile\", \"number\", \"whatsapp\"],\n  email: [\"email\", \"e-mail\", \"mail address\"]\n};\n\nfunction keywordDetected(field) {\n  return keywords[field].some(k => conversationText.toLowerCase().includes(k));\n}\n\nif (!conversationState.budget_asked && keywordDetected(\"budget\")) {\n  conversationState.budget_asked = true;\n  conversationState.budget_answer = \"mentioned in conversation\";\n  conversationState.budget_answered = true;\n}\n\nif (!conversationState.timing_asked && keywordDetected(\"timing\")) {\n  conversationState.timing_asked = true;\n  conversationState.timing_answer = \"mentioned in conversation\";\n  conversationState.timing_answered = true;\n}\n\nif (!conversationState.phone_asked && keywordDetected(\"phone\")) {\n  conversationState.phone_asked = true;\n  conversationState.phone_answer = \"mentioned in conversation\";\n  conversationState.phone_answered = true;\n}\n\nif (!conversationState.email_asked && keywordDetected(\"email\")) {\n  conversationState.email_asked = true;\n  conversationState.email_answer = \"mentioned in conversation\";\n  conversationState.email_answered = true;\n}\n\n// Determine next step\nif (!conversationState.budget_asked) {\n  conversationState.next_step = \"budget\";\n} else if (!conversationState.budget_answered) {\n  conversationState.next_step = \"reask_budget\";\n} else if (!conversationState.timing_asked) {\n  conversationState.next_step = \"timing\";\n} else if (!conversationState.timing_answered) {\n  conversationState.next_step = \"reask_timing\";\n} else if (!conversationState.phone_asked) {\n  conversationState.next_step = \"phone\";\n} else if (!conversationState.phone_answered) {\n  conversationState.next_step = \"reask_phone\";\n} else if (!conversationState.email_asked) {\n  conversationState.next_step = \"email\";\n} else if (!conversationState.email_answered) {\n  conversationState.next_step = \"reask_email\";\n} else {\n  conversationState.next_step = \"done\";\n}\n\nitems[0].json.conversationState = conversationState;\nreturn items;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2840,
+        -1600
+      ],
+      "id": "5522a263-73ab-4f63-8bda-b1146f44d873",
+      "name": "Code5"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3640,
+        -1600
+      ],
+      "id": "30b3cacc-8e92-4068-97a6-37c3752bf2ae",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [
+        2500,
+        -1380
+      ],
+      "id": "fd061e88-e5cd-4782-80d8-017d6d310d0b",
+      "name": "OpenAI Chat Model5",
+      "credentials": {
+        "openAiApi": {
+          "id": "A4zASjA3hJUUFd5d",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "55e25228-abd4-4146-8846-691814399d6b",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1380,
+        -2040
+      ],
+      "id": "652a96dd-2a8c-4e9e-a1f9-8f99eaf77ab9",
+      "name": "Webhook2",
+      "webhookId": "55e25228-abd4-4146-8846-691814399d6b"
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "=pixelnest:users:{{ $json.body.sessionId }}:history",
+        "messageData": "=Lead: {{ $json.body.userReply }}"
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        -1600
+      ],
+      "id": "3f4cac2f-3d07-4013-b031-0fa515ee8af8",
+      "name": "Redis8",
+      "credentials": {
+        "redis": {
+          "id": "tmOTqUefQgtWJBl4",
+          "name": "Redis account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "send all details when 'DONE\" ",
+        "method": "POST",
+        "url": "WEBHOOKURL",
+        "sendBody": true,
+        "parametersBody": {
+          "values": [
+            {
+              "name": "Name"
+            },
+            {
+              "name": "Budget"
+            },
+            {
+              "name": "Phone"
+            },
+            {
+              "name": "Email"
+            },
+            {
+              "name": "Summary"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        3280,
+        -1340
+      ],
+      "id": "f67a3ffd-2f3d-4f69-9a01-b5afab369c56",
+      "name": "HTTP Request3"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o",
+          "mode": "list",
+          "cachedResultName": "GPT-4O"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Create an easy to understand transcript based on this:\n\nWebchat conversation: {{ $('LeadData').item.json.Summary }}\nWhatsapp: {{ $json.propertyName }}\n\nThis will get added to a airtable CRM. So no formatting. "
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        5620,
+        -820
+      ],
+      "id": "f2ccf834-32f5-44af-830a-bc1c90df51f2",
+      "name": "OpenAI2",
+      "credentials": {
+        "openAiApi": {
+          "id": "A4zASjA3hJUUFd5d",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "020f1b27-cbc2-485a-88b9-c59452a66a98",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        400
+      ],
+      "id": "33a9a1c6-4fbf-4fb4-899f-5abc5ee4875a",
+      "name": "Webhook3",
+      "webhookId": "020f1b27-cbc2-485a-88b9-c59452a66a98"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "9654179d-2d32-4224-8819-e284218d0969",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        820
+      ],
+      "id": "e94adab2-25ef-4703-b994-1bfa15ee54e4",
+      "name": "Webhook4",
+      "webhookId": "9654179d-2d32-4224-8819-e284218d0969"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Your name is Jessica, you are working for Jet Ski Ibiza. You will need to create a short whatsapp message confirming that your booking has been received and that we are geneting a payment link. But that they need to confirm the booking details: \"name:{{ $json.body.message.toolWithToolCallList[0].toolCall.function.parameters.customer_name }}, Booking date:{{ $json.body.message.toolWithToolCallList[0].toolCall.function.parameters.booking_date }}, booking time:{{ $json.body.message.toolWithToolCallList[0].toolCall.function.parameters.booking_time }}, number of jet ski:{{ $json.body.message.toolWithToolCallList[0].toolCall.function.parameters.number_of_jetskis }}, tour type:{{ $json.body.message.toolWithToolCallList[0].toolCall.function.parameters.tour_type }} \"\n\nYOU WORK IN SALES YOU KNOW HOW TO HANDLE THIS, No emojis. \n\nYOU MUST ONLY OUTPUT THE WHATSAPP MESSAGE NOTHING ELSE\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1580,
+        820
+      ],
+      "id": "615500c2-f00f-4478-a7f4-9b96df2f3f96",
+      "name": "AI Agent4"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [
+        1460,
+        980
+      ],
+      "id": "aee966ae-1a05-4581-ab7e-2042d811bdac",
+      "name": "OpenAI Chat Model6",
+      "credentials": {
+        "openAiApi": {
+          "id": "A4zASjA3hJUUFd5d",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// This function will properly format messages for WhatsApp\n// It converts newlines to the correct format and stringifies the content\nfunction formatWhatsAppMessage(items) {\n  try {\n    // Get the phone number from the AI Agent7 node\n    const phoneNumber = $('AI Agent7').first().json.output;\n    \n    // Get the customer details from Webhook3\n    const customerName = $('Webhook3').first().json.body.name;\n    const customerBudget = $('Webhook3').first().json.body.budget;\n    const visitDate = $('Webhook3').first().json.body.visit;\n    \n    // For each item in the incoming data\n    for (const item of items) {\n      // Check if output property exists\n      if (item.json.output) {\n        // Get the message text\n        let messageText = item.json.output;\n        \n        // Replace placeholders with actual customer details\n        messageText = messageText.replace(/\\[Name\\]/g, customerName);\n        messageText = messageText.replace(/\\[Budget\\]/g, customerBudget);  // Note the capital B in Budget\n        messageText = messageText.replace(/\\[Visit Date\\]/g, visitDate);  // Note the space and capitalization\n        \n        // Ensure all newlines are properly formatted for WhatsApp\n        // First standardize all newlines to \\n\n        messageText = messageText.replace(/\\r\\n/g, '\\n');\n        \n        // Create a properly formatted message object for WhatsApp API\n        item.json.whatsappMessage = {\n          messaging_product: \"whatsapp\",\n          recipient_type: \"individual\",\n          to: phoneNumber,\n          type: \"text\",\n          text: {\n            preview_url: false,\n            body: messageText  // This should now have all placeholders replaced\n          }\n        };\n        \n        // Add customer details to the item for later use\n        item.json.customerDetails = {\n          name: customerName,\n          budget: customerBudget,\n          visitDate: visitDate\n        };\n        \n        // If you need the stringified version for some reason\n        item.json.stringifiedMessage = JSON.stringify(item.json.whatsappMessage);\n      } else {\n        // Handle cases where output is missing\n        item.json.whatsappMessage = {\n          text: \"No message content found.\"\n        };\n        item.json.stringifiedMessage = JSON.stringify({\n          text: \"No message content found.\"\n        });\n      }\n    }\n    \n    return items;\n  } catch (error) {\n    // Add error handling\n    const errorItem = {\n      json: {\n        error: true,\n        errorMessage: `Error processing WhatsApp message: ${error.message}`\n      }\n    };\n    return [errorItem];\n  }\n}\n// Execute the function\nreturn formatWhatsAppMessage($input.all());"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2220,
+        400
+      ],
+      "id": "30e239d3-e773-4842-8e0f-76f046e7bd6c",
+      "name": "Code6"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v22.0/584235344774850/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer APIKEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.whatsappMessage }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2440,
+        400
+      ],
+      "id": "50aafaef-e992-47cc-bd4b-eb4ea410529e",
+      "name": "HTTP Request4"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Your name is Jessica, you are working for buymarbellavilla.com. You will need to create a short whatsapp message restating what was said in the call. Exampele It was great to have you on the line Alessandro! detials, closing question. \n\nHere is the information: \"name: {{ $json.body.name }}, budget: {{ $json.body.budget }}, when visit marbella: {{ $json.body.visit }}\"\n\nYOU WORK IN SALES YOU KNOW HOW TO HANDLE THIS, No emojis. \n\nYOU MUST ONLY OUTPUT THE WHATSAPP MESSAGE NOTHING ELSE\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1860,
+        400
+      ],
+      "id": "b249c3e7-3835-4257-ad97-14a889dde538",
+      "name": "AI Agent5"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [
+        1840,
+        600
+      ],
+      "id": "0dc19c15-724d-4692-9eea-99b5baaa4183",
+      "name": "OpenAI Chat Model7",
+      "credentials": {
+        "openAiApi": {
+          "id": "A4zASjA3hJUUFd5d",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## New website visitor",
+        "height": 320,
+        "width": 840
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1260,
+        -2140
+      ],
+      "typeVersion": 1,
+      "id": "cbcb84d3-2667-48ed-803b-c2276e655e72",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## New webchat ",
+        "height": 520,
+        "width": 2600
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1260,
+        -1700
+      ],
+      "typeVersion": 1,
+      "id": "0df9b3f5-6db8-47fb-bb6e-0b71537e626f",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "## Send property details email and whatsapp\n",
+        "height": 1280,
+        "width": 5120,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1260,
+        -1060
+      ],
+      "typeVersion": 1,
+      "id": "c36c9f0d-f028-46aa-a830-3556301f6c4f",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// This function will properly format messages for WhatsApp\n// It converts newlines to the correct format and stringifies the content\n\nfunction formatWhatsAppMessage(items) {\n  try {\n    // For each item in the incoming data\n    for (const item of items) {\n      // Check if output property exists\n      if (item.json.output) {\n        // Get the message text\n        let messageText = item.json.output;\n        \n        // Ensure all newlines are properly formatted for WhatsApp\n        // First standardize all newlines to \\n\n        messageText = messageText.replace(/\\r\\n/g, '\\n');\n        \n        // WhatsApp expects \\n for line breaks, which is already correct\n        // No conversion needed from \\n\\n to something else\n        \n        // Create a properly formatted message object for WhatsApp API\n        item.json.whatsappMessage = {\n          messaging_product: \"whatsapp\",\n          recipient_type: \"individual\",\n          to: item.json.to || item.json.phone || \"+44 7424 356614\", // Use the provided phone number or a default\n          type: \"text\",\n          text: {\n            preview_url: false,\n            body: messageText\n          }\n        };\n        \n        // If you need the stringified version for some reason\n        item.json.stringifiedMessage = JSON.stringify(item.json.whatsappMessage);\n      } else {\n        // Handle cases where output is missing\n        item.json.whatsappMessage = {\n          text: \"No message content found.\"\n        };\n        item.json.stringifiedMessage = JSON.stringify({\n          text: \"No message content found.\"\n        });\n      }\n    }\n    \n    return items;\n  } catch (error) {\n    // Add error handling\n    const errorItem = {\n      json: {\n        error: true,\n        errorMessage: `Error processing WhatsApp message: ${error.message}`\n      }\n    };\n    return [errorItem];\n  }\n}\n\n// Execute the function\nreturn formatWhatsAppMessage($input.all());"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        820
+      ],
+      "id": "d2078f87-c4ba-4c6f-a9b7-f0b3803516f5",
+      "name": "Code7"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v22.0/584235344774850/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer APIKEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.whatsappMessage }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2220,
+        820
+      ],
+      "id": "d29cf852-5980-4e9f-8b7b-8ec3527bc5ce",
+      "name": "HTTP Request5"
+    },
+    {
+      "parameters": {
+        "content": "## AI Call & Eleven Labs completion",
+        "height": 840,
+        "width": 1660,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1260,
+        260
+      ],
+      "typeVersion": 1,
+      "id": "6a600371-8b89-441b-9d08-37753be04760",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ]
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        6620,
+        -540
+      ],
+      "id": "e98b7679-d5c9-4aac-b2f7-2cc880935183",
+      "name": "WhatsApp Trigger",
+      "webhookId": "6a0b4999-b5ba-4802-9b4b-0978871dcd48",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "KX4NNaksLOogHrjJ",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://graph.facebook.com/v22.0/584235344774850/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer APIKEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.whatsappMessage }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        8520,
+        -560
+      ],
+      "id": "83180d65-b666-463a-84e7-3ef43503884f",
+      "name": "Send via whatsapp2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "128df180-ed02-4848-9f84-9580703337e4",
+              "name": "whatsappData",
+              "value": "={{ $('WhatsApp Trigger').item.json.messages }}",
+              "type": "array"
+            },
+            {
+              "id": "273226f7-6266-428a-9a7a-43c6d1eec5ef",
+              "name": "aiResponse",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        8100,
+        -560
+      ],
+      "id": "3ce569bf-f386-48b3-9d88-a8b04eeeffdb",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "content": "## AI Agent WhatsApp Continue \n",
+        "height": 720,
+        "width": 3900,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        6580,
+        -800
+      ],
+      "typeVersion": 1,
+      "id": "2d058304-af3f-49f5-bc97-cbc30ca8017c",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "=pixelnest:users:{{ $('WhatsApp Trigger').item.json.messages[0].from }}:history",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        7100,
+        -560
+      ],
+      "id": "8d7714aa-6ed3-4d3b-a317-a3eda9e9d1ae",
+      "name": "Redis14",
+      "credentials": {
+        "redis": {
+          "id": "tmOTqUefQgtWJBl4",
+          "name": "Redis account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the input data from the previous node\nconst input = $input.first().json;\n\n// Extract whatsappData and aiResponse\nconst whatsappData = input.whatsappData[0];\nconst aiResponse = input.aiResponse;\n\n// Extract the phone number from whatsappData\nconst phoneNumber = whatsappData.from || \"UNKNOWN_PHONE\";\n\n// No need to parse the aiResponse as it's already a string in the sample data\nconst aiOutput = aiResponse;\n\n// Try to get the contact name if available, otherwise use \"there\"\nlet contactName = \"there\";\ntry {\n  // Check if we can access the contact name from WhatsApp Trigger node\n  if ($('WhatsApp Trigger').first().json.contacts &&\n      $('WhatsApp Trigger').first().json.contacts[0] &&\n      $('WhatsApp Trigger').first().json.contacts[0].profile &&\n      $('WhatsApp Trigger').first().json.contacts[0].profile.name) {\n    contactName = $('WhatsApp Trigger').first().json.contacts[0].profile.name;\n  }\n} catch (error) {\n  // If there's an error, we'll use the default \"there\"\n}\n\n// Construct and return the output\nreturn {\n  json: {\n    whatsappMessage: {\n      messaging_product: \"whatsapp\",\n      recipient_type: \"individual\",\n      to: phoneNumber,\n      type: \"text\",\n      text: {\n        body: aiOutput\n      }\n    },\n    userInfo: {\n      phone: phoneNumber,\n      name: contactName,\n      message: whatsappData.text.body || \"\"\n    },\n    aiResponse: aiOutput,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        8320,
+        -560
+      ],
+      "id": "c7edceba-6d50-49fb-937b-b011ad96695f",
+      "name": "Code24"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You’re Maria, a friendly, knowledgeable, and professional AI real estate assistant for NuSun Realty. \n\n##Core Objectives\nSeamless Conversation Continuity\n\nALWAYS REVIEW THE WHOLE CONVERSATION SUMMARY HISTORY BEFORE GENERATING AN OUTPUT: \"{{ $json.output }}\".\n\nALWAYS USE YOUR TOOL WHEN THE USER ASKS A QUESTION\n\nYou have access to the user’s complete conversation history, so never repeat information or questions already asked.\n\nIf a topic or question has been addressed, acknowledge it and offer new info or elaboration.\n\n##Referrals for Buying Intent\n\nIf the user expresses buying intent (e.g., “I want to buy…”), promptly refer them to Chris or an agent.\n\n“I’ve informed Chris so he can reach out personally about your buying needs.”\n\n##Utilizing the Knowledge Base\n\nUse the TOOL to reply on buying a first property in Spain questions whenever relevant.\n\nIf details are missing or uncertain, do some research yourself.\n\nALWAYS REPLY WITH a Concise, Warm, Professional Tone\n\nKeep responses short (1–2 sentences, about 50–250 characters).\n\nBe warm, friendly, and consultative with no pushy sales tactics.\n\nAsk one brief question at a time for clarification if needed.\n\nNo Repetitive Greetings\n\nOnly greet if the user has not been greeted before; otherwise, continue naturally based on previous interactions.\n\n\nFor complex or unknown topics, escalate by saying:\n\n“That’s a great question—let me connect you with our founder, Chris, for the specifics.”\n\nWhen escalating, ask date and time when Chris can contact them. \n\nReply to the Latest User Input\n\nUser last text input, you need to reply to this message: \"{{ $('WhatsApp Trigger').item.json.messages[0].text.body }}\"\n\nConversation Flow Guidelines\nGreeting & Criteria Confirmation (Only if not already done)\n\nFor new conversations:\n\n“Hi, I’m Maria, your AI assistant. I see you’re looking for a [bedrooms] bed [property type] in [location]. Ready to explore options?”\n\nMemory-Aware Continuation\n\nIf previous conversation details exist (via \"{{ $json.output }}\"), do not re-ask or re-greet.\n\nConfirm what you know:\n\n“Last time, you mentioned wanting a [bedrooms] bed [property type]—is that still the case?”\n\nBudget & Timeline Clarification (If not previously provided)\n\nBudget:\n\n“Great! I recall your budget is €X—still accurate, or can you stretch a bit?”\n\nTimeline:\n\n“Got it. When are you thinking of visiting Marbella for a viewing?”\n\nBuying Intent & Escalation\n\nWhen a buying intent is expressed:\n\n“I’ve notified Chris to contact you soon about your purchase plans.”\n\nHandling Repeat Questions\n\nIf the same question comes up:\n\n“I mentioned that earlier—would you like more details or a different angle on it?”\n\nEscalation for Complex Queries\n\nFor questions beyond your current info or the provided PDF:\n\n“May I connect you with Chris for more details? He will be the best person to help you”\n\nAdditional Reminders\nYOUR GOAL IS TO HAVE A CONVERSATION WITH THE PERSON, MAKE THEM FEEL THEY ARE BEING HELPED AND THAT WE CARE ABOUT THEM.\n\nNEVER REPEAT YOURSELF—SUPER IMPORTANT! If a topic or question has been addressed, provide new information or clarification.\n\nReply specifically to the latest text input: \"{{ $('WhatsApp Trigger').item.json.messages[0].text.body }}\"\n\nNever put anything in bold. \nMAKE SURE YOU ARE NOT REPEATING THE SAME SENTENCE IN THE ENTIRE CONVERSATION. ALWAYS DOUBLE CHECK TRANSCRIPT AND MAKE NECESSARY CHANGES THEN OUTPUT ",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        7640,
+        -560
+      ],
+      "id": "1e1e34a8-2759-4f1e-9a2c-465434ced65b",
+      "name": "AI Agent13"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an assistant that reads real estate conversations and creates a structured summary to help another AI agent respond intelligently without repeating information.\n\nHere is the formatted conversation history between the AI agent “Maria” and a user:\n\n\"{{ $json.propertyName }}\"\n\nYour task is to summarize key details in this exact format:\n\nSummary:\n- Budget: [User budget and whether it's flexible or firm]\n- Property shown: [Has a property been sent to this user before: Yes/No]\n- Preferred viewing time: [When the user wants to visit]\n- Interest level: [Just browsing, Interested, Serious buyer]\n- Preferences: [Location, bedrooms, type, etc.]\n- Properties shown:\n  - Property 1: [Area – Price – Bedrooms – Highlights]\n  - Property 2: ...\n- Questions already asked:\n  - [Question Maria asked] → [User answer]\n  - ...\n- Latest user message: \"{{ $('WhatsApp Trigger').item.json.messages[0].text.body }}\"\n\nKeep it short and clear. Don’t make assumptions.\n\nIf a property has not been shown and the person agreed to receive the matching property details, trigger the HTTP tool. \n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        7300,
+        -560
+      ],
+      "id": "31a59918-2da7-4a78-a65c-627367c08114",
+      "name": "AI Agent16"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "35a30e55-fce3-44bc-9dee-79b918f3e552",
+              "leftValue": "={{ $json.statuses[0].status }}",
+              "rightValue": "read",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "555124ae-fe6a-4f6b-b32c-efe2f0739f40",
+              "leftValue": "={{ $json.statuses[0].status }}",
+              "rightValue": "delivered",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "2a6e4d9c-0b6b-45c0-8251-52ca0521da22",
+              "leftValue": "={{ $json.statuses[0].status }}",
+              "rightValue": "sent",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        6840,
+        -540
+      ],
+      "id": "f459f552-3e39-4743-9444-cec0c8dfa4f6",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [
+        7320,
+        -340
+      ],
+      "id": "89780731-37b5-4805-95dc-96092c8cc54e",
+      "name": "OpenAI Chat Model8",
+      "credentials": {
+        "openAiApi": {
+          "id": "A4zASjA3hJUUFd5d",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [
+        7620,
+        -320
+      ],
+      "id": "9fe9804e-f4bd-4aa6-a550-f3e754093feb",
+      "name": "OpenAI Chat Model9",
+      "credentials": {
+        "openAiApi": {
+          "id": "A4zASjA3hJUUFd5d",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Your purpose is to remove any country + sign or whatever from the phone number, this is the structure that you must output it in. It should only be in this format: \"447424356614\"\n\nThis is the phoen humber you must edit: \"{{ $('Webhook').item.json.body.Phone }}\"\n\nONLY OUTPUT THE PHONE NUMBER NOTHING ELSE. ",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        2220,
+        -840
+      ],
+      "id": "f0e51eec-2064-44ff-85f7-18b1b2f5799c",
+      "name": "AI Agent6"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [
+        2260,
+        -620
+      ],
+      "id": "4ba6c768-6070-451a-adcd-b731bccfe08c",
+      "name": "OpenAI Chat Model10",
+      "credentials": {
+        "openAiApi": {
+          "id": "A4zASjA3hJUUFd5d",
+          "name": "OpenAi account 4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=your role is to just format the phone number, remove any text from this and just output the phone number: \"{{ $json.body.whatsapp }}\"",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        1480,
+        400
+      ],
+      "id": "01977d39-1553-498e-825e-6e37998eef62",
+      "name": "AI Agent7"
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.1,
+      "position": [
+        1480,
+        620
+      ],
+      "id": "075a79f2-3abe-4f7e-a62d-bfffbbdb9a40",
+      "name": "OpenAI Chat Model11",
+      "credentials": {
+        "openAiApi": {
+          "id": "A4zASjA3hJUUFd5d",
+          "name": "OpenAi account 4"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Webhook3": [
+      {
+        "json": {
+          "headers": {
+            "host": "clickdrive.app.n8n.cloud",
+            "user-agent": "Python/3.12 aiohttp/3.11.16",
+            "content-length": "140",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "34.67.146.145",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "US",
+            "cf-ray": "93a789c212895f00-ORD",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "x-forwarded-for": "34.67.146.145, 172.69.17.4",
+            "x-forwarded-host": "clickdrive.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-19-6d7b847dcf-gkjlr",
+            "x-is-trusted": "yes",
+            "x-real-ip": "34.67.146.145"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "visit": "in three weeks",
+            "whatsapp": "+447424356614",
+            "email": "SDRalternative@gmail.com",
+            "budget": "one million",
+            "name": "Alessandro"
+          },
+          "webhookUrl": "https://clickdrive.app.n8n.cloud/webhook/7763706a-d5f9-4290-a00b-839cc164d1e0",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "LeadData",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format domain": {
+      "main": [
+        [
+          {
+            "node": "Authentication",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI WhatsApp Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Email Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI WhatsApp Agent": {
+      "main": [
+        [
+          {
+            "node": "Greeting WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Email Agent": {
+      "main": [
+        [
+          {
+            "node": "Format HTLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail": {
+      "main": [
+        [
+          {
+            "node": "Slack1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Redis1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Greeting WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Greeting",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Greeting": {
+      "main": [
+        [
+          {
+            "node": "Format domain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LeadData": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Authentication": {
+      "main": [
+        [
+          {
+            "node": "Fetch property",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch property": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format domain1": {
+      "main": [
+        [
+          {
+            "node": "AI Email Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format HTLM": {
+      "main": [
+        [
+          {
+            "node": "Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Email Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Message after property shown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Airtable1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable1": {
+      "main": [
+        [
+          {
+            "node": "Format domain1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "AI WhatsApp Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "AI Agent6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Airtable": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Respark interested",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respark interested": {
+      "main": [
+        [
+          {
+            "node": "Redis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis2": {
+      "main": [
+        [
+          {
+            "node": "Redis3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis3": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message after property": {
+      "main": [
+        [
+          {
+            "node": "Code3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message after property shown": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis1": {
+      "main": [
+        [
+          {
+            "node": "Redis4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis4": {
+      "main": [
+        [
+          {
+            "node": "OpenAI2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code3": {
+      "main": [
+        []
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Message after property",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Redis8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis5": {
+      "main": [
+        []
+      ]
+    },
+    "Redis6": {
+      "main": [
+        [
+          {
+            "node": "Code4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code4": {
+      "main": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Redis7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent3": {
+      "main": [
+        [
+          {
+            "node": "Code5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code5": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis7": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent3",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Redis5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis8": {
+      "main": [
+        [
+          {
+            "node": "Redis6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI2": {
+      "main": [
+        [
+          {
+            "node": "Airtable2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook4": {
+      "main": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent4": {
+      "main": [
+        [
+          {
+            "node": "Code7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code6": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model7": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent5",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook3": {
+      "main": [
+        [
+          {
+            "node": "AI Agent7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent5": {
+      "main": [
+        [
+          {
+            "node": "Code6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code7": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Code24",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send via whatsapp2": {
+      "main": [
+        []
+      ]
+    },
+    "Redis14": {
+      "main": [
+        [
+          {
+            "node": "AI Agent16",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code24": {
+      "main": [
+        [
+          {
+            "node": "Send via whatsapp2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent13": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent16": {
+      "main": [
+        [
+          {
+            "node": "AI Agent13",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Redis14",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model8": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent16",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model9": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent13",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent6": {
+      "main": [
+        [
+          {
+            "node": "Redis2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model10": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent6",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent7": {
+      "main": [
+        [
+          {
+            "node": "AI Agent5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model11": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent7",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "c8565321-cdbe-4d72-aa61-0fe505700f88",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3f8190da5ab24bffb02ceff2666ab7dda19faa618831b619b75ef4142edce576"
+  },
+  "id": "fTNtDaGmmeQtZjKC",
+  "tags": []
+}
