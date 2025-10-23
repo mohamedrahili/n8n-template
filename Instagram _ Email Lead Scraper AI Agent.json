@@ -1,0 +1,400 @@
+{
+  "name": "Instagram / Email Lead Scraper AI Agent",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a27217f6-0f2b-47af-a7d1-b5ade54dc857",
+      "name": "When clicking ‘Test workflow’"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "I run a [type of business] that helps [target audience] achieve [specific goal] through [methodology or service] in [Country].\nI usually work with [specific type of clients].\nIn this prompt I will ask you to find people in my niche so that I can scrape their followers to find leads for my business. I just wanted to give you clarity on my niche so that i know you understand.\n\nFind me 5 instagram usernames of personal brands in my niche, like [insert @charliemorganbiz and @niksetting for example]",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "66ac10d6-6722-49a7-a4f3-a25c79dfaac1",
+      "name": "AI IG Figures Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an assistant tasked with filtering Instagram bios.  \nGiven the following Instagram bio, check if it contains any keywords related to \"Help\" or similar terms.  \nIf the bio is relevant, return a **structured JSON object** where each field is separate (instead of a single block).  \nIf the bio is not relevant, return `Unqualified`.  \n**Only output the JSON object, nothing else.**  \n\n### **Output Format (if relevant):**  \n```json\n{\n  \"row_number\": {{ $json.row_number }},\n  \"Instagram ID\": \"{{ $json['Instagram ID'] }}\",\n  \"Username\": \"{{ $json.Username }}\",\n  \"Full name\": \"{{ $json['Full name'] }}\",\n  \"Profile link\": \"{{ $json['Profile link'] }}\",\n  \"Biography\": \"{{ $json.Biography }}\"",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        864,
+        0
+      ],
+      "id": "2b5f3609-82f0-4fff-9515-36edba835458",
+      "name": "AI Qualifier Agent",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "model": "deepseek/deepseek-chat",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        176,
+        224
+      ],
+      "id": "1c7bbf77-e8c2-4d47-b9b9-db150dad5de4",
+      "name": "5 IG Figures Output"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        832,
+        224
+      ],
+      "id": "947006af-c083-47c0-bba3-6f8687871f91",
+      "name": "Qualifier"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1zyQpXl_lqwn3i48Y1Gnd6N0zhIlfqrmRG1cfieS2HtQ",
+          "mode": "list",
+          "cachedResultName": "Qualified Leads",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zyQpXl_lqwn3i48Y1Gnd6N0zhIlfqrmRG1cfieS2HtQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1zyQpXl_lqwn3i48Y1Gnd6N0zhIlfqrmRG1cfieS2HtQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "output"
+          ],
+          "schema": [
+            {
+              "id": "Qualified?",
+              "displayName": "Qualified?",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Full name",
+              "displayName": "Full name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Instagram ID",
+              "displayName": "Instagram ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Username",
+              "displayName": "Username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Profile link",
+              "displayName": "Profile link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Avatar pic",
+              "displayName": "Avatar pic",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Biography",
+              "displayName": "Biography",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Public email",
+              "displayName": "Public email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1392,
+        0
+      ],
+      "id": "7c24fa57-8e38-480d-be18-889fc491911e",
+      "name": "Qualified Leads Sheet"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "",
+          "mode": "list",
+          "cachedResultName": "",
+          "cachedResultUrl": ""
+        }
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        720,
+        0
+      ],
+      "id": "21a07a52-6ac7-4114-9361-7eb29a4a6b2e",
+      "name": "Unfiltered Leads",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "67bf1cf0-ea4b-4883-bbaa-a9bf333444e6",
+              "name": "Qualified?",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            },
+            {
+              "id": "c14cded4-c39f-40d6-bf88-02a844844076",
+              "name": "Full name",
+              "value": "={{ $('Unfiltered Leads').item.json['Full name'] }}",
+              "type": "string"
+            },
+            {
+              "id": "48ef9470-97f6-4ae6-bc66-f654e25fb65d",
+              "name": "Instagram ID",
+              "value": "={{ $('Unfiltered Leads').item.json['Instagram ID'] }}",
+              "type": "string"
+            },
+            {
+              "id": "3977e7ef-ca05-4b79-a038-6ecc32c29027",
+              "name": "Username",
+              "value": "={{ $('Unfiltered Leads').item.json.Username }}",
+              "type": "string"
+            },
+            {
+              "id": "82d71fc0-45b6-48bf-a900-cbb2bd7410a1",
+              "name": "Profile link",
+              "value": "={{ $('Unfiltered Leads').item.json['Profile link'] }}",
+              "type": "string"
+            },
+            {
+              "id": "55dfe2c4-71fa-477c-94cf-d6fb0bb46245",
+              "name": "Avatar pic",
+              "value": "={{ $('Unfiltered Leads').item.json['Avatar pic'] }}",
+              "type": "string"
+            },
+            {
+              "id": "359ca12b-41ea-4fdd-be1d-aeadd0e34708",
+              "name": "Biography",
+              "value": "={{ $('Unfiltered Leads').item.json.Biography }}",
+              "type": "string"
+            },
+            {
+              "id": "5002a949-4a4e-4efe-a843-add4757d4d97",
+              "name": "Public email",
+              "value": "={{ $('Unfiltered Leads').item.json['Public email'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1184,
+        0
+      ],
+      "id": "23e78a20-e5e3-48e4-ad61-f6d8106d0f4d",
+      "name": "Sorting Rows & Columns"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        544,
+        0
+      ],
+      "id": "06ccd53c-7513-4110-80d2-58b6999d8b4d",
+      "name": "Growman Scrape",
+      "webhookId": "147d4825-d3fb-4e64-b690-530223fd286c"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "AI IG Figures Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI IG Figures Agent": {
+      "main": [
+        [
+          {
+            "node": "Growman Scrape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Qualifier Agent": {
+      "main": [
+        [
+          {
+            "node": "Sorting Rows & Columns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5 IG Figures Output": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI IG Figures Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qualifier": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Qualifier Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unfiltered Leads": {
+      "main": [
+        [
+          {
+            "node": "AI Qualifier Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sorting Rows & Columns": {
+      "main": [
+        [
+          {
+            "node": "Qualified Leads Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Growman Scrape": {
+      "main": [
+        [
+          {
+            "node": "Unfiltered Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5d8f0476-84c4-4d35-b4b3-7067fc194518",
+  "meta": {
+    "instanceId": "698d9894576bc3605393e52d2384bc9b5fd351cff74f45ee394c3b015afd6266"
+  },
+  "id": "SfUEB84TEr4DVECo",
+  "tags": []
+}

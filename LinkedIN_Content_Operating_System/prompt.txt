@@ -1,0 +1,13 @@
+Create a professional, production-ready web application for generating LinkedIn content. The app should have the following features and design specifications:
+Design & UI:
+A stunning, animated gradient background with a subtle blur.
+A modern glassmorphism design with translucent cards, backdrop filters, and rounded corners on all elements.
+A professional color system with LinkedIn blue (#0077B5) as the primary accent.
+Smooth micro-interactions and hover states.
+A responsive layout optimized for desktop and tablet usage.
+Clean typography with proper hierarchy and readability.
+Functionality:
+Settings Panel: Create a settings panel that is darker and more opaque than the main background (bg-black/40) to improve visibility. This panel should allow users to input and save two pieces of information: a Target Avatar (a lot of text can be entered here) and a Tone of Voice (a lot of text can be entered here). The settings should be saved persistently for future use.
+Content Generation: On the main screen, there should be a text area labeled "Content" for users to input their ideas. Include a toggle for "Lead Magnet Yes/No."
+Lead Magnet Integration: When the "Lead Magnet Yes" option is selected, a second text input field for the Lead Magnet URL should appear.
+Submission & Webhook: When the user clicks a "Submit" button, all the information is sent to the following webhook: INSERT WEBHOOK URL

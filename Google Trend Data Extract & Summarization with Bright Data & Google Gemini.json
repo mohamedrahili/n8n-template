@@ -1,0 +1,421 @@
+{
+  "name": "Google Trend Data Extract & Summarization with Bright Data & Google Gemini",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "29e6ce01-c42f-4155-add1-8a5cfff56967",
+      "name": "When clicking ‘Test workflow’",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        368,
+        608
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You need to analyze the below markdown and convert to textual data. Please do not output with your own thoughts. Make sure to output with textual data only with no links, scripts, css etc.\n\n{{ $json.data }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a markdown expert"
+            }
+          ]
+        }
+      },
+      "id": "31280203-1ab1-4fb5-862f-e9c4f2969436",
+      "name": "Markdown to Textual Data Extractor",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        1040,
+        608
+      ],
+      "typeVersion": 1.6
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3aedba66-f447-4d7a-93c0-8158c5e795f9",
+              "name": "url",
+              "type": "string",
+              "value": "https://trends.google.com/trends/explore?gprop=youtube&hl=en-US"
+            },
+            {
+              "id": "4e7ee31d-da89-422f-8079-2ff2d357a0ba",
+              "name": "zone",
+              "type": "string",
+              "value": "web_unlocker1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "80e40926-aff3-4512-ad1e-61b3741b2387",
+      "name": "Set URL and Bright Data Zone",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        592,
+        608
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "url": "https://webhook.site/3c36d7d1-de1b-4171-9fd3-643ea2e4dd76",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a60b2ac6-42c9-42af-a7fe-9cf570fcd017",
+      "name": "Initiate a Webhook Notification for Markdown to Textual Data Extraction",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1488,
+        304
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-exp",
+        "options": {}
+      },
+      "id": "c8f9b2ad-8e66-43d0-aeb5-3f5e202910d3",
+      "name": "Google Gemini Chat Model for Data Extract",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "position": [
+        1120,
+        832
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.brightdata.com/request",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "zone",
+              "value": "={{ $json.zone }}"
+            },
+            {
+              "name": "url",
+              "value": "={{ $json.url }}?product=unlocker&method=api"
+            },
+            {
+              "name": "format",
+              "value": "raw"
+            },
+            {
+              "name": "data_format",
+              "value": "markdown"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "30d3b080-d35a-422d-990d-0df0d73b96a8",
+      "name": "Perform Bright Data Web Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        816,
+        608
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "functionCode": "items[0].binary = {\n  data: {\n    data: new Buffer(JSON.stringify(items[0].json, null, 2)).toString('base64')\n  }\n};\nreturn items;"
+      },
+      "id": "18acbc0a-f0e2-4f5b-b98c-dec69c656a7e",
+      "name": "Create a binary data",
+      "type": "n8n-nodes-base.function",
+      "position": [
+        2160,
+        384
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "text": "=Extract the Google Trend Data in JSON.\n\nHere's the content:\n\n {{ $json.text }}",
+        "schemaType": "manual",
+        "inputSchema": "{\n\t\"type\": \"array\",\n\t\"properties\": {\n\t\t\"topics\": {\n\t\t\t\"type\": \"string\"\n\t\t},\"desc\": {\n\t\t\t\"type\": \"string\"\n\t\t}\n\t}\n}",
+        "options": {}
+      },
+      "id": "1c386966-85ae-4b30-a485-259f1eb0727b",
+      "name": "Structured Data Extractor",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "position": [
+        1456,
+        608
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "chunkingMode": "advanced",
+        "options": {}
+      },
+      "id": "aa7b5dd7-53c7-4197-b2e8-886832cad82e",
+      "name": "Summarize Google Trends",
+      "type": "@n8n/n8n-nodes-langchain.chainSummarization",
+      "position": [
+        1936,
+        608
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "url": "https://webhook.site/3c36d7d1-de1b-4171-9fd3-643ea2e4dd76",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ $json.response.text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "25f0a115-ba3a-4ec6-8fe6-8e33e6302a2b",
+      "name": "Initiate a Webhook Notification for Summarization",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2368,
+        608
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "d:\\google-trends.json",
+        "options": {}
+      },
+      "id": "50b55d73-5506-439c-8e82-e198f3b4f431",
+      "name": "Write the file to disk",
+      "type": "n8n-nodes-base.readWriteFile",
+      "position": [
+        2368,
+        384
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-exp",
+        "options": {}
+      },
+      "id": "a163f8d3-2b5c-48a5-8a1d-26c0caba6383",
+      "name": "Google Gemini Chat Model for Summarization",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "position": [
+        2032,
+        832
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-exp",
+        "options": {}
+      },
+      "id": "9e3db8e9-ad4c-4247-841e-1f5f4937b93c",
+      "name": "Google Gemini Chat Model for Structured Data Extract",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "position": [
+        1552,
+        832
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "sendTo": "ranjancse@gmail.com",
+        "subject": "Google Trends Summary",
+        "message": "={{ $json.response.text }}",
+        "options": {}
+      },
+      "id": "122d3269-e932-48e0-af01-e2c421650e16",
+      "name": "Send Summary to Gmail",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        2368,
+        864
+      ],
+      "webhookId": "a57ca2f7-42dc-4ee9-808d-85455bb7c12f",
+      "typeVersion": 2.1,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "aGY4Q93FbJiwz8xe",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Create a binary data": {
+      "main": [
+        [
+          {
+            "node": "Write the file to disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write the file to disk": {
+      "main": [
+        []
+      ]
+    },
+    "Summarize Google Trends": {
+      "main": [
+        [
+          {
+            "node": "Initiate a Webhook Notification for Summarization",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Summary to Gmail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Data Extractor": {
+      "main": [
+        [
+          {
+            "node": "Create a binary data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Summarize Google Trends",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set URL and Bright Data Zone": {
+      "main": [
+        [
+          {
+            "node": "Perform Bright Data Web Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Perform Bright Data Web Request": {
+      "main": [
+        [
+          {
+            "node": "Markdown to Textual Data Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Test workflow’": {
+      "main": [
+        [
+          {
+            "node": "Set URL and Bright Data Zone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Markdown to Textual Data Extractor": {
+      "main": [
+        [
+          {
+            "node": "Initiate a Webhook Notification for Markdown to Textual Data Extraction",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Structured Data Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model for Data Extract": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Markdown to Textual Data Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model for Summarization": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Summarize Google Trends",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model for Structured Data Extract": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Structured Data Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1b435b18-976a-4baa-b474-b8b6a742eb07",
+  "meta": {
+    "templateId": "3854",
+    "instanceId": "698d9894576bc3605393e52d2384bc9b5fd351cff74f45ee394c3b015afd6266"
+  },
+  "id": "2wzfRghS4r5MhMyH",
+  "tags": []
+}

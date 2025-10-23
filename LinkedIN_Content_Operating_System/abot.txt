@@ -1,0 +1,13 @@
+This Operating System LinkedIn posts in your tone of voice. Enter  what you’d like to talk about, your tone of voice, and target avatar and the system will produce 3 exceptional posts to choose from. Enjoy 3 LinkedIN posts that sound like you in less than 60 seconds.
+
+Time saved:  1 hour
+
+👇 Optional: Download your LinkedIN data: 
+
+💬 Optional: Enter it into Tone of Voice Generator* 
+
+🧑‍💻 Head over to Bolt & enter the prompt (prompt.txt)
+
+👾 Import this blueprint (automation.json) into n8n 
+
+🎉 Unlimited LinkedIN posts to go

@@ -1,0 +1,576 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ad5d6c05-07ea-407f-98be-2d9186c917a0",
+              "name": "Tone of voice",
+              "value": "={{ $json.body.toneVoice }}",
+              "type": "string"
+            },
+            {
+              "id": "96cb65b9-cae4-47d2-b908-214e8a337a53",
+              "name": "Content",
+              "value": "={{ $json.body.content }}",
+              "type": "string"
+            },
+            {
+              "id": "36e13d24-938b-46e4-9b6c-f0b345c2e49d",
+              "name": "Avatar",
+              "value": "={{ $json.body.targetAvatar }}",
+              "type": "string"
+            },
+            {
+              "id": "7b56572b-d5cf-4cc7-8a93-2ed641d93915",
+              "name": "LeadMagnetUrl ",
+              "value": "={{ $json.body.leadMagnetUrl }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        256,
+        96
+      ],
+      "id": "a16f83ad-e4a4-4abf-baa2-c64c3ff8de31",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json['LeadMagnetUrl '] }}\n{{ $json.Avatar }}\n{{ $json.Content }}\n{{ $json['Tone of voice'] }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=\n**Improved Prompt**\n\nYou are a helpful assistant.\n\n**Role:** You are a specialized Research Analyst. Your sole purpose is to extract and research recent UK-based news relevant to a professional audience and generate three different value-driven perspectives or angles related to a specific topic. You do not create final content — you only provide structured research insights.\n\n**Context:**\nYou will receive a Reddit post that reflects signals about what the user is interested in or reacting to, alongside:\n\n* Target Avatar: \n* Location: UK (default)\n* Current Timestamp: \n\nYour job is to:\n\n1. **Infer Core Theme** — Identify the underlying theme, concern, or professional question behind the Reddit post (explicit or implied).\n2. **Define Date Range** — Use the Current Timestamp () to set a 7-day research window.\n3. **Research News & Insight** — Use the Tavily tool to find reputable UK-based news or insights published in the last 7 days that directly relate to the core theme.\n4. **Generate Perspectives** — Construct three distinct, non-overlapping perspectives or interpretations of the same theme, each offering a different angle, implication, or application that would be valuable to the Target Avatar.\n\n**Important Requirements:**\n\n* Output must consist of **exactly three unique takes** on the same theme (not three unrelated stories).\n* Each take must be grounded in recent UK-based news (within the last 7 days).\n* Each take must include:\n\n  * **concise\\_summary:** A 1–2 sentence overview.\n  * **angle\\_approach:** How it could be framed in a LinkedIn post or professional discussion.\n  * **details:** 2–4 bullet points or sentences citing names, stats, or insights from the news.\n  * **relevance:** 2–3 sentences on why this matters specifically to the Target Avatar in the UK.\n\n**Constraints & Final Check:**\n\n* Output must be **valid JSON only**.\n* Do not include markdown, explanations, or conversational filler.\n* No duplication or redundancy across the three ideas.\n* No information older than 7 days.\n\n**Required Output Format (strict):**\n\n```json\n{\n  \"idea_1\": {\n    \"concise_summary\": \"\",\n    \"angle_approach\": \"\",\n    \"details\": \"\",\n    \"relevance\": \"\"\n  },\n  \"idea_2\": {\n    \"concise_summary\": \"\",\n    \"angle_approach\": \"\",\n    \"details\": \"\",\n    \"relevance\": \"\"\n  },\n  \"idea_3\": {\n    \"concise_summary\": \"\",\n    \"angle_approach\": \"\",\n    \"details\": \"\",\n    \"relevance\": \"\"\n  }\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        496,
+        96
+      ],
+      "id": "788709c8-35dc-421e-8221-cd0a3d8d251c",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        384,
+        352
+      ],
+      "id": "55f8a7e0-6977-4763-8ba3-ae3d1ce1f466",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "pvxHhcB1WlkPAwJA",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "# 🤖 AI Agent",
+        "height": 600,
+        "width": 1100
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -16,
+        -32
+      ],
+      "typeVersion": 1,
+      "id": "466560ec-2c92-401e-82c5-3a818e4cc056",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "# 🔥 LinkedIN 1",
+        "height": 380,
+        "width": 440,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1248,
+        -16
+      ],
+      "typeVersion": 1,
+      "id": "1e16cf56-bd8f-42a9-961e-04fef28fe715",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "# 🔥 LinkedIN 3",
+        "height": 380,
+        "width": 440,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2320,
+        -16
+      ],
+      "typeVersion": 1,
+      "id": "42318990-980f-4302-b2f7-f43ec374c0f4",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "# 🔥 LinkedIN 2",
+        "height": 380,
+        "width": 440,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1792,
+        -16
+      ],
+      "typeVersion": 1,
+      "id": "08f395de-8455-425c-b436-9c05df005b70",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Create a video on this topic:{{ $('Edit Fields').item.json.Content }}\nTone of voice: {{ $('Edit Fields').item.json['Tone of voice'] }}\nAvatar: {{ $('Edit Fields').item.json.Avatar }}\n\nInclude this in the CTA (if blank,use a CTA to share or comment something): {{ $('Edit Fields').item.json['LeadMagnetUrl '] }}\n\nFollow this approach:\n{{ $json.output.idea_1.angle_approach }}\n{{ $json.output.idea_1.concise_summary }}\n{{ $json.output.idea_1.details }}\n{{ $json.output.idea_1.relevance }}",
+        "options": {
+          "systemMessage": "=Act as an informed LinkedIn expert. You will be provided with specific details about a news topic relevant to this audience. You must only provide the output required. Do not include any other additional information about how or why the response is good. Provide only the output according to the below guidelines.\n\n**Mandatory Tone of Voice:**\nYou must consult the tone of voice guidelines in all of the responses you create. These will be provided to you. You must write by those guidelines. Before you write any text, thoroughly embody this tone.\n\n**Output Format:**\nPlease provide your response in **plain text format only**, without any special formatting elements such as hashtags, asterisks, or other markdown syntax in the main body. Use clear and concise language, and structure your response using paragraphs. Emojis may be used appropriately for emphasis and engagement if they fit the specified tone of voice.\n\n**Task & Guidelines:**\nYou will create an optimized LinkedIn post based on the Input Topic Data above, incorporating LinkedIn posting best practices and using the structure outlined below:\n\n1.  **Provide the Context or Main Idea:** Start with a brief summary or main point based on the `Concise Summary` and `Relevance` provided. This includes the key message or argument. Use the `Suggested Angle / Hook` to make the opening engaging.\n2.  **Add Personal or Relatable Anecdotes:** If appropriate for the tone and topic, include any relatable anecdotes that connect the context or main idea to real-life scenarios for the `Target Audience`.\n3.  **Incorporate Engaging Elements:** Make the post engaging by using:\n    * Questions to the audience (`Target Audience`) to provoke thought or responses related to the topic.\n    * Compelling statistics or data points from the `Key Details` to support the argument.\n    * Calls to action (subtly leading towards the cta`) encouraging readers to think, act, or share their own experiences.\n    * Relevant emojis or symbols (if fitting the tone) for emphasis and to draw attention to key points.\n4.  **Specify Hashtags and Keywords:** At the very end of the post, provide a list of 3-5 relevant hashtags/keywords to enhance visibility. Generate these based on the topic details and relevance (e.g., #UKDentistry #DentalPractice #PatientAcquisition #[RelevantTopicKeyword]).\n5.  **Optional Additional Details:** Consider if a specific layout (like a list based on `Key Details`, or a comparison) would enhance the post, referencing the examples below for inspiration.\n6.  **No URL:** Do not include the original URL from the research. The post must stand alone.\n7.  **No Prompt Text:** Do not include any part of this prompt or these guidelines in your final output. You must include only what is needed to create an excellent LinkedIn post according to these instructions.\n8.  **Subtle CTA Implementation:** Ensure you naturally weave in a subtle Call to Action related to the `Subtle CTA Goal`  towards the end of the post.\n\n**Here are a few examples of excellent LinkedIN posts for inspiration on structure, engagement, and tone (adapt content to the specific topic data provided):**\n\n\n\nPlease provide your response in plain text format, without any special formatting elements such as hashtags, asterisks, or other markdown syntax. Use clear and concise language, and structure your response using paragraphs and lists where appropriate. You may use emoji’s as directed below.\n\n\nYou will create an optimized LinkedIn post based on that article, incorporating LinkedIn posting best practices and using the structure outlined below:\n \n1. Provide the Context or Main Idea: Start with a brief summary or main point of the article you want to transform into a LinkedIn post. This includes the key message or argument the article presents.\n2. Add Personal or Relatable Anecdotes: If appropriate, include any personal experiences or relatable anecdotes that can connect the context or main idea to real-life scenarios. This could be your own experiences or generalized scenarios that readers might find relatable.\n3. Incorporate Engaging Elements: Mention any specific elements you want included to make the post engaging, such as:\n   1. Questions to the audience to provoke thought or responses.\n   2. Compelling statistics or data points to support the argument.\n   3. Calls to action, encouraging readers to think, act, or share their own experiences.\n   4. Relevant emojis or symbols for emphasis and to draw attention to key points.\n4. Specify Hashtags and Keywords: Provide a list of hashtags or important keywords that should be included to enhance the visibility and relevance of the post on LinkedIn. These should be relevant to the main theme and helpful for reaching the right audience.\n5. Optional Additional Details: If there are any other specific details you want included, such as references to significant life events (as seen in your examples), or if there’s a specific layout or structure (like a list format or a direct comparison), mention these as well.\n6. Do not include the original URL at the bottom of the article. It should read as a complete LinkedIN post on its own merits, like the below examples.\n7. Do not include any any of this prompt or guidelines provided in your post. You must include only what is in your instructions to create an excellent linkedIN post\n \nHere are a few examples of excellent LinkedIN posts\n \nExample 1\nIs anyone still actually debating work from home options?\n \nAt previous companies, I used to put on a pressed shirt and slacks and drive 35 minutes to an office that smelled of cleaning product and coffee.\n \nI wasn’t comfortable for the entire day. If I felt tired and needed a break - too bad, look busy.\n \nIf I wanted to just get up and leave for 20 mins to collect my thoughts or be outside - too bad, look busy.\n \nNow I’ll have breakfast with my wife and kids and start work relatively early. I go outside and hit golf balls against a net when I need to think. I listen to podcasts at full volume. I sing.\n \nI take a gosh darn peloton break if I feel like it. I have never been more productive, because this is how humans thrive.\n \nAnd when I miss my work friends and general contact, which I do from time to time, I’ll head up to HQ and see them.\n \nAny employer dictating in-office work doesn’t trust you to be an adult and do your job. The option should be there - but it must actually be optional.\n \n#work #workfromhome #mentalhealth #peloton\n \nExample 2\n \nI recently discovered a hyper-effective LinkedIn post strategy.\n \nAnd today, I'm gonna let you steal it.\n \nHere it is:\n \nCombine significant life events with useful content.\n \n\"I turn 32 today. Here are 32 things I wish I knew 10 years ago:\"\n \n\"My business hit $1 million ARR today. Here's how I built it:\"\n \n\"I was offered my dream job today. Here are 7 steps I took to get it:\"\n \nThe event attracts engagement and the content attracts followers.\n \nTry it.\n \nP.S. 👇\n \n \nExample 3\n \nJust a quick shout out to content creators! If you see less impressions and lower reach, it's probably not just you.\n \nWe've seen a serious decrease in impressions in the last month, with equal engagement.\nThese are some numbers but we are still researching:\n \n🔻 -25% (!) on posts with more or less same engagement (likes and comments)\n🔻 -30% less impressions for text only posts\n🔻 -20% reach for document posts\n🔻 -35% reach for Newsletters (with over 15.000 subscribers)\n \nMore data will follow in September, but my own stats went down from 18.000 average impressions per post to 14.000 average.\n \n❓ Have you had similar experiences?\n❓ What content performs the best for you?\n \nExample 4\n\"We are hiring,\" \"Join our team,\" \"Here are our open positions.\"\n \nIf this is the way you are communicating your job ads on Linkedin, you are losing candidates. Here is why 👇\n \nYour post will only attract people actively looking for a new job. And usually, that is a minority.\nYou are failing to attract 3 relevant audiences.\n \nFirst, people who are not actively looking for a new job but could be interested in seeing what you are offering. They could consider applying or approaching you for more information if you get their attention.\n \nSecond, the friends and family of potential candidates. If you get their attention, they will refer your post to those interested.\n \nThird, people who are not interested in this particular job, but might decide to visit your careers page and find another position that is a better fit.\n \nIn addition, never lose sight of how people perceive you and your company. If you don't show that you care about your open position, why should the candidates?\n \nA few extra minutes of your time can make a big difference in attracting talent.\n \n \nExample 5\n \nA lot of Marketers assume SEO ranks are stable.\n \nOnce you rank #1 (or any position for that purpose), you \"made it\" and will stay there with a little maintenance work.\n \nIt makes sense to think that way because that's how it used to be.\n \nBut not anymore.\n \nAn example: the ranks for \"black dress\" (a keyword with 209,000 monthly searches in the US alone) flip almost daily.\n \nThe top 3 results have been bouncing between positions #1 and #7 over the last 6 months.\nWe need to anticipate rank fluctuations and define healthy position ranges, so we can optimize pages when they rank outside them.\n \nStart by monitoring rank fluctuations for your keywords, either in a 3rd party tool like Semrush or Ahrefs or with Google Search Console.\n \nA few more tips:\n \n1/ Analyze your top keywords and how much they fluctuate (will differ by competitiveness, user intent, etc.)\n \n2/ Add rank fluctuations to your organic traffic projections\n \n3/ Define alerts when keywords cross healthy rank ranges (most rank trackers can do this)\nRemember, using the outdated mental model of stable ranks means your traffic projections might be faulty and you constantly stress out over dropping ranks.\n \nGoogle is constantly a/b testing different results.\n \nUse the approach above and build a model for your site.\n \n \nExample 6\nRunning a company is a lot like making a great cup of coffee ☕️\n \n1) Start by deciding what kind of coffee you would like to make and creating the recipe (think: “vision”).\n \n2) Bring together the best ingredients you can. A better the coffee beans, grinder, filter, etc. will make a far better coffee. Same with the team at your company. You’re only as good as your weakest team member.\n \n3) Measure everything, test, and continually optimise over time.\n \n4) Be patient, and don’t rush it (this one is for me!!).\n \n5) Enjoy the results!\n \nWhat am I missing here?!\n \n#b2b #growth #marketing #buildinpublic #coffee\n \n \nExample 7\n \nThe UK can't afford to be left behind during this Fourth Industrial Revolution for the sake of the wealth of the nation, and its citizens.\n \n⏰ In a world of exponential change, hesitation is a recipe for irrelevance.\n \n🤔 You might doubt the transformative power of AI, but can you/we afford to be wrong given the compounding cost of inaction?\n \n🌍 Other nations are seizing this opportunity - the UK must do the same.\n \n🇬🇧 The UK should maintain its leadership in innovation, support entrepreneurship, and seek to maximise inclusivity.\n \n📢 This is my call to action - we must unite, invest, and embrace the AI revolution.\n \n🚢 The AI ship will leave the harbour, permanently. Let's make sure the UK is on it.\n \nhashtag#AI hashtag#artificialintelligence hashtag#uk hashtag#ukeconomy\n\n\n\n---\n**Now, using the specific Input Topic Data provided at the top of these instructions, generate ONLY the optimized LinkedIn post text following all the guidelines and referencing the examples.**"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        1360,
+        80
+      ],
+      "id": "779f8455-44c8-4f08-9f0c-1c03e16c851c",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1312,
+        240
+      ],
+      "id": "6868f891-8cfc-4c63-b313-f7e67b2b83c3",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "pvxHhcB1WlkPAwJA",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1872,
+        288
+      ],
+      "id": "827b835d-7ac3-4fd5-9b6e-d6037cd49d18",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "pvxHhcB1WlkPAwJA",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        2416,
+        272
+      ],
+      "id": "90092f03-ff2c-4551-8369-3db576fab061",
+      "name": "OpenAI Chat Model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "pvxHhcB1WlkPAwJA",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "5bc5d1b5-38df-4d0b-ae63-b172200fcedf",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        96
+      ],
+      "id": "b145aba1-b691-45ed-8d82-fe2368b20744",
+      "name": "Webhook",
+      "webhookId": "5bc5d1b5-38df-4d0b-ae63-b172200fcedf"
+    },
+    {
+      "parameters": {},
+      "type": "@tavily/n8n-nodes-tavily.tavilyTool",
+      "typeVersion": 1,
+      "position": [
+        576,
+        384
+      ],
+      "id": "27080b8c-2ef6-44e2-99a1-fe4c05d97b57",
+      "name": "Search in Tavily",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"idea_1\": {\n    \"concise_summary\": \"example\",\n    \"angle_approach\": \"example\",\n    \"details\": \"example\",\n    \"relevance\": \"example\"\n  },\n  \"idea_2\": {\n    \"concise_summary\": \"example\",\n    \"angle_approach\": \"example\",\n    \"details\": \"example\",\n    \"relevance\": \"example\"\n  },\n  \"idea_3\": {\n    \"concise_summary\": \"example\",\n    \"angle_approach\": \"example\",\n    \"details\": \"example\",\n    \"relevance\": \"example\"\n  }\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        752,
+        304
+      ],
+      "id": "75bfc77f-ddd9-4851-937b-f67ad4e447eb",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Create a video on this topic:{{ $('Edit Fields').item.json.Content }}\nTone of voice: {{ $('Edit Fields').item.json['Tone of voice'] }}\nAvatar: {{ $('Edit Fields').item.json.Avatar }}\n\nInclude this in the CTA (if blank,use a CTA to share or comment something): {{ $('Edit Fields').item.json['LeadMagnetUrl '] }}\n\nFollow this approach:\n{{ $json.output.idea_2.angle_approach }}\n{{ $json.output.idea_2.concise_summary }}\n{{ $json.output.idea_2.details }}\n{{ $json.output.idea_2.relevance }}",
+        "options": {
+          "systemMessage": "=Act as an informed LinkedIn expert. You will be provided with specific details about a news topic relevant to this audience. You must only provide the output required. Do not include any other additional information about how or why the response is good. Provide only the output according to the below guidelines.\n\n**Mandatory Tone of Voice:**\nYou must consult the tone of voice guidelines in all of the responses you create. These will be provided to you. You must write by those guidelines. Before you write any text, thoroughly embody this tone.\n\n**Output Format:**\nPlease provide your response in **plain text format only**, without any special formatting elements such as hashtags, asterisks, or other markdown syntax in the main body. Use clear and concise language, and structure your response using paragraphs. Emojis may be used appropriately for emphasis and engagement if they fit the specified tone of voice.\n\n**Task & Guidelines:**\nYou will create an optimized LinkedIn post based on the Input Topic Data above, incorporating LinkedIn posting best practices and using the structure outlined below:\n\n1.  **Provide the Context or Main Idea:** Start with a brief summary or main point based on the `Concise Summary` and `Relevance` provided. This includes the key message or argument. Use the `Suggested Angle / Hook` to make the opening engaging.\n2.  **Add Personal or Relatable Anecdotes:** If appropriate for the tone and topic, include any relatable anecdotes that connect the context or main idea to real-life scenarios for the `Target Audience`.\n3.  **Incorporate Engaging Elements:** Make the post engaging by using:\n    * Questions to the audience (`Target Audience`) to provoke thought or responses related to the topic.\n    * Compelling statistics or data points from the `Key Details` to support the argument.\n    * Calls to action (subtly leading towards the cta`) encouraging readers to think, act, or share their own experiences.\n    * Relevant emojis or symbols (if fitting the tone) for emphasis and to draw attention to key points.\n4.  **Specify Hashtags and Keywords:** At the very end of the post, provide a list of 3-5 relevant hashtags/keywords to enhance visibility. Generate these based on the topic details and relevance (e.g., #UKDentistry #DentalPractice #PatientAcquisition #[RelevantTopicKeyword]).\n5.  **Optional Additional Details:** Consider if a specific layout (like a list based on `Key Details`, or a comparison) would enhance the post, referencing the examples below for inspiration.\n6.  **No URL:** Do not include the original URL from the research. The post must stand alone.\n7.  **No Prompt Text:** Do not include any part of this prompt or these guidelines in your final output. You must include only what is needed to create an excellent LinkedIn post according to these instructions.\n8.  **Subtle CTA Implementation:** Ensure you naturally weave in a subtle Call to Action related to the `Subtle CTA Goal`  towards the end of the post.\n\n**Here are a few examples of excellent LinkedIN posts for inspiration on structure, engagement, and tone (adapt content to the specific topic data provided):**\n\n\n\nPlease provide your response in plain text format, without any special formatting elements such as hashtags, asterisks, or other markdown syntax. Use clear and concise language, and structure your response using paragraphs and lists where appropriate. You may use emoji’s as directed below.\n\n\nYou will create an optimized LinkedIn post based on that article, incorporating LinkedIn posting best practices and using the structure outlined below:\n \n1. Provide the Context or Main Idea: Start with a brief summary or main point of the article you want to transform into a LinkedIn post. This includes the key message or argument the article presents.\n2. Add Personal or Relatable Anecdotes: If appropriate, include any personal experiences or relatable anecdotes that can connect the context or main idea to real-life scenarios. This could be your own experiences or generalized scenarios that readers might find relatable.\n3. Incorporate Engaging Elements: Mention any specific elements you want included to make the post engaging, such as:\n   1. Questions to the audience to provoke thought or responses.\n   2. Compelling statistics or data points to support the argument.\n   3. Calls to action, encouraging readers to think, act, or share their own experiences.\n   4. Relevant emojis or symbols for emphasis and to draw attention to key points.\n4. Specify Hashtags and Keywords: Provide a list of hashtags or important keywords that should be included to enhance the visibility and relevance of the post on LinkedIn. These should be relevant to the main theme and helpful for reaching the right audience.\n5. Optional Additional Details: If there are any other specific details you want included, such as references to significant life events (as seen in your examples), or if there’s a specific layout or structure (like a list format or a direct comparison), mention these as well.\n6. Do not include the original URL at the bottom of the article. It should read as a complete LinkedIN post on its own merits, like the below examples.\n7. Do not include any any of this prompt or guidelines provided in your post. You must include only what is in your instructions to create an excellent linkedIN post\n \nHere are a few examples of excellent LinkedIN posts\n \nExample 1\nIs anyone still actually debating work from home options?\n \nAt previous companies, I used to put on a pressed shirt and slacks and drive 35 minutes to an office that smelled of cleaning product and coffee.\n \nI wasn’t comfortable for the entire day. If I felt tired and needed a break - too bad, look busy.\n \nIf I wanted to just get up and leave for 20 mins to collect my thoughts or be outside - too bad, look busy.\n \nNow I’ll have breakfast with my wife and kids and start work relatively early. I go outside and hit golf balls against a net when I need to think. I listen to podcasts at full volume. I sing.\n \nI take a gosh darn peloton break if I feel like it. I have never been more productive, because this is how humans thrive.\n \nAnd when I miss my work friends and general contact, which I do from time to time, I’ll head up to HQ and see them.\n \nAny employer dictating in-office work doesn’t trust you to be an adult and do your job. The option should be there - but it must actually be optional.\n \n#work #workfromhome #mentalhealth #peloton\n \nExample 2\n \nI recently discovered a hyper-effective LinkedIn post strategy.\n \nAnd today, I'm gonna let you steal it.\n \nHere it is:\n \nCombine significant life events with useful content.\n \n\"I turn 32 today. Here are 32 things I wish I knew 10 years ago:\"\n \n\"My business hit $1 million ARR today. Here's how I built it:\"\n \n\"I was offered my dream job today. Here are 7 steps I took to get it:\"\n \nThe event attracts engagement and the content attracts followers.\n \nTry it.\n \nP.S. 👇\n \n \nExample 3\n \nJust a quick shout out to content creators! If you see less impressions and lower reach, it's probably not just you.\n \nWe've seen a serious decrease in impressions in the last month, with equal engagement.\nThese are some numbers but we are still researching:\n \n🔻 -25% (!) on posts with more or less same engagement (likes and comments)\n🔻 -30% less impressions for text only posts\n🔻 -20% reach for document posts\n🔻 -35% reach for Newsletters (with over 15.000 subscribers)\n \nMore data will follow in September, but my own stats went down from 18.000 average impressions per post to 14.000 average.\n \n❓ Have you had similar experiences?\n❓ What content performs the best for you?\n \nExample 4\n\"We are hiring,\" \"Join our team,\" \"Here are our open positions.\"\n \nIf this is the way you are communicating your job ads on Linkedin, you are losing candidates. Here is why 👇\n \nYour post will only attract people actively looking for a new job. And usually, that is a minority.\nYou are failing to attract 3 relevant audiences.\n \nFirst, people who are not actively looking for a new job but could be interested in seeing what you are offering. They could consider applying or approaching you for more information if you get their attention.\n \nSecond, the friends and family of potential candidates. If you get their attention, they will refer your post to those interested.\n \nThird, people who are not interested in this particular job, but might decide to visit your careers page and find another position that is a better fit.\n \nIn addition, never lose sight of how people perceive you and your company. If you don't show that you care about your open position, why should the candidates?\n \nA few extra minutes of your time can make a big difference in attracting talent.\n \n \nExample 5\n \nA lot of Marketers assume SEO ranks are stable.\n \nOnce you rank #1 (or any position for that purpose), you \"made it\" and will stay there with a little maintenance work.\n \nIt makes sense to think that way because that's how it used to be.\n \nBut not anymore.\n \nAn example: the ranks for \"black dress\" (a keyword with 209,000 monthly searches in the US alone) flip almost daily.\n \nThe top 3 results have been bouncing between positions #1 and #7 over the last 6 months.\nWe need to anticipate rank fluctuations and define healthy position ranges, so we can optimize pages when they rank outside them.\n \nStart by monitoring rank fluctuations for your keywords, either in a 3rd party tool like Semrush or Ahrefs or with Google Search Console.\n \nA few more tips:\n \n1/ Analyze your top keywords and how much they fluctuate (will differ by competitiveness, user intent, etc.)\n \n2/ Add rank fluctuations to your organic traffic projections\n \n3/ Define alerts when keywords cross healthy rank ranges (most rank trackers can do this)\nRemember, using the outdated mental model of stable ranks means your traffic projections might be faulty and you constantly stress out over dropping ranks.\n \nGoogle is constantly a/b testing different results.\n \nUse the approach above and build a model for your site.\n \n \nExample 6\nRunning a company is a lot like making a great cup of coffee ☕️\n \n1) Start by deciding what kind of coffee you would like to make and creating the recipe (think: “vision”).\n \n2) Bring together the best ingredients you can. A better the coffee beans, grinder, filter, etc. will make a far better coffee. Same with the team at your company. You’re only as good as your weakest team member.\n \n3) Measure everything, test, and continually optimise over time.\n \n4) Be patient, and don’t rush it (this one is for me!!).\n \n5) Enjoy the results!\n \nWhat am I missing here?!\n \n#b2b #growth #marketing #buildinpublic #coffee\n \n \nExample 7\n \nThe UK can't afford to be left behind during this Fourth Industrial Revolution for the sake of the wealth of the nation, and its citizens.\n \n⏰ In a world of exponential change, hesitation is a recipe for irrelevance.\n \n🤔 You might doubt the transformative power of AI, but can you/we afford to be wrong given the compounding cost of inaction?\n \n🌍 Other nations are seizing this opportunity - the UK must do the same.\n \n🇬🇧 The UK should maintain its leadership in innovation, support entrepreneurship, and seek to maximise inclusivity.\n \n📢 This is my call to action - we must unite, invest, and embrace the AI revolution.\n \n🚢 The AI ship will leave the harbour, permanently. Let's make sure the UK is on it.\n \nhashtag#AI hashtag#artificialintelligence hashtag#uk hashtag#ukeconomy\n\n\n\n---\n**Now, using the specific Input Topic Data provided at the top of these instructions, generate ONLY the optimized LinkedIn post text following all the guidelines and referencing the examples.**"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        1904,
+        80
+      ],
+      "id": "0e1471ed-a542-4e4b-a6de-bba1ad25e815",
+      "name": "AI Agent4"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Create a video on this topic:{{ $('Edit Fields').item.json.Content }}\nTone of voice: {{ $('Edit Fields').item.json['Tone of voice'] }}\nAvatar: {{ $('Edit Fields').item.json.Avatar }}\n\nInclude this in the CTA (if blank,use a CTA to share or comment something): {{ $('Edit Fields').item.json['LeadMagnetUrl '] }}\n\nFollow this approach:\n{{ $json.output.idea_3.angle_approach }}\n{{ $json.output.idea_3.concise_summary }}\n{{ $json.output.idea_3.details }}\n{{ $json.output.idea_3.relevance }}",
+        "options": {
+          "systemMessage": "=Act as an informed LinkedIn expert. You will be provided with specific details about a news topic relevant to this audience. You must only provide the output required. Do not include any other additional information about how or why the response is good. Provide only the output according to the below guidelines.\n\n**Mandatory Tone of Voice:**\nYou must consult the tone of voice guidelines in all of the responses you create. These will be provided to you. You must write by those guidelines. Before you write any text, thoroughly embody this tone.\n\n**Output Format:**\nPlease provide your response in **plain text format only**, without any special formatting elements such as hashtags, asterisks, or other markdown syntax in the main body. Use clear and concise language, and structure your response using paragraphs. Emojis may be used appropriately for emphasis and engagement if they fit the specified tone of voice.\n\n**Task & Guidelines:**\nYou will create an optimized LinkedIn post based on the Input Topic Data above, incorporating LinkedIn posting best practices and using the structure outlined below:\n\n1.  **Provide the Context or Main Idea:** Start with a brief summary or main point based on the `Concise Summary` and `Relevance` provided. This includes the key message or argument. Use the `Suggested Angle / Hook` to make the opening engaging.\n2.  **Add Personal or Relatable Anecdotes:** If appropriate for the tone and topic, include any relatable anecdotes that connect the context or main idea to real-life scenarios for the `Target Audience`.\n3.  **Incorporate Engaging Elements:** Make the post engaging by using:\n    * Questions to the audience (`Target Audience`) to provoke thought or responses related to the topic.\n    * Compelling statistics or data points from the `Key Details` to support the argument.\n    * Calls to action (subtly leading towards the cta`) encouraging readers to think, act, or share their own experiences.\n    * Relevant emojis or symbols (if fitting the tone) for emphasis and to draw attention to key points.\n4.  **Specify Hashtags and Keywords:** At the very end of the post, provide a list of 3-5 relevant hashtags/keywords to enhance visibility. Generate these based on the topic details and relevance (e.g., #UKDentistry #DentalPractice #PatientAcquisition #[RelevantTopicKeyword]).\n5.  **Optional Additional Details:** Consider if a specific layout (like a list based on `Key Details`, or a comparison) would enhance the post, referencing the examples below for inspiration.\n6.  **No URL:** Do not include the original URL from the research. The post must stand alone.\n7.  **No Prompt Text:** Do not include any part of this prompt or these guidelines in your final output. You must include only what is needed to create an excellent LinkedIn post according to these instructions.\n8.  **Subtle CTA Implementation:** Ensure you naturally weave in a subtle Call to Action related to the `Subtle CTA Goal`  towards the end of the post.\n\n**Here are a few examples of excellent LinkedIN posts for inspiration on structure, engagement, and tone (adapt content to the specific topic data provided):**\n\n\n\nPlease provide your response in plain text format, without any special formatting elements such as hashtags, asterisks, or other markdown syntax. Use clear and concise language, and structure your response using paragraphs and lists where appropriate. You may use emoji’s as directed below.\n\n\nYou will create an optimized LinkedIn post based on that article, incorporating LinkedIn posting best practices and using the structure outlined below:\n \n1. Provide the Context or Main Idea: Start with a brief summary or main point of the article you want to transform into a LinkedIn post. This includes the key message or argument the article presents.\n2. Add Personal or Relatable Anecdotes: If appropriate, include any personal experiences or relatable anecdotes that can connect the context or main idea to real-life scenarios. This could be your own experiences or generalized scenarios that readers might find relatable.\n3. Incorporate Engaging Elements: Mention any specific elements you want included to make the post engaging, such as:\n   1. Questions to the audience to provoke thought or responses.\n   2. Compelling statistics or data points to support the argument.\n   3. Calls to action, encouraging readers to think, act, or share their own experiences.\n   4. Relevant emojis or symbols for emphasis and to draw attention to key points.\n4. Specify Hashtags and Keywords: Provide a list of hashtags or important keywords that should be included to enhance the visibility and relevance of the post on LinkedIn. These should be relevant to the main theme and helpful for reaching the right audience.\n5. Optional Additional Details: If there are any other specific details you want included, such as references to significant life events (as seen in your examples), or if there’s a specific layout or structure (like a list format or a direct comparison), mention these as well.\n6. Do not include the original URL at the bottom of the article. It should read as a complete LinkedIN post on its own merits, like the below examples.\n7. Do not include any any of this prompt or guidelines provided in your post. You must include only what is in your instructions to create an excellent linkedIN post\n \nHere are a few examples of excellent LinkedIN posts\n \nExample 1\nIs anyone still actually debating work from home options?\n \nAt previous companies, I used to put on a pressed shirt and slacks and drive 35 minutes to an office that smelled of cleaning product and coffee.\n \nI wasn’t comfortable for the entire day. If I felt tired and needed a break - too bad, look busy.\n \nIf I wanted to just get up and leave for 20 mins to collect my thoughts or be outside - too bad, look busy.\n \nNow I’ll have breakfast with my wife and kids and start work relatively early. I go outside and hit golf balls against a net when I need to think. I listen to podcasts at full volume. I sing.\n \nI take a gosh darn peloton break if I feel like it. I have never been more productive, because this is how humans thrive.\n \nAnd when I miss my work friends and general contact, which I do from time to time, I’ll head up to HQ and see them.\n \nAny employer dictating in-office work doesn’t trust you to be an adult and do your job. The option should be there - but it must actually be optional.\n \n#work #workfromhome #mentalhealth #peloton\n \nExample 2\n \nI recently discovered a hyper-effective LinkedIn post strategy.\n \nAnd today, I'm gonna let you steal it.\n \nHere it is:\n \nCombine significant life events with useful content.\n \n\"I turn 32 today. Here are 32 things I wish I knew 10 years ago:\"\n \n\"My business hit $1 million ARR today. Here's how I built it:\"\n \n\"I was offered my dream job today. Here are 7 steps I took to get it:\"\n \nThe event attracts engagement and the content attracts followers.\n \nTry it.\n \nP.S. 👇\n \n \nExample 3\n \nJust a quick shout out to content creators! If you see less impressions and lower reach, it's probably not just you.\n \nWe've seen a serious decrease in impressions in the last month, with equal engagement.\nThese are some numbers but we are still researching:\n \n🔻 -25% (!) on posts with more or less same engagement (likes and comments)\n🔻 -30% less impressions for text only posts\n🔻 -20% reach for document posts\n🔻 -35% reach for Newsletters (with over 15.000 subscribers)\n \nMore data will follow in September, but my own stats went down from 18.000 average impressions per post to 14.000 average.\n \n❓ Have you had similar experiences?\n❓ What content performs the best for you?\n \nExample 4\n\"We are hiring,\" \"Join our team,\" \"Here are our open positions.\"\n \nIf this is the way you are communicating your job ads on Linkedin, you are losing candidates. Here is why 👇\n \nYour post will only attract people actively looking for a new job. And usually, that is a minority.\nYou are failing to attract 3 relevant audiences.\n \nFirst, people who are not actively looking for a new job but could be interested in seeing what you are offering. They could consider applying or approaching you for more information if you get their attention.\n \nSecond, the friends and family of potential candidates. If you get their attention, they will refer your post to those interested.\n \nThird, people who are not interested in this particular job, but might decide to visit your careers page and find another position that is a better fit.\n \nIn addition, never lose sight of how people perceive you and your company. If you don't show that you care about your open position, why should the candidates?\n \nA few extra minutes of your time can make a big difference in attracting talent.\n \n \nExample 5\n \nA lot of Marketers assume SEO ranks are stable.\n \nOnce you rank #1 (or any position for that purpose), you \"made it\" and will stay there with a little maintenance work.\n \nIt makes sense to think that way because that's how it used to be.\n \nBut not anymore.\n \nAn example: the ranks for \"black dress\" (a keyword with 209,000 monthly searches in the US alone) flip almost daily.\n \nThe top 3 results have been bouncing between positions #1 and #7 over the last 6 months.\nWe need to anticipate rank fluctuations and define healthy position ranges, so we can optimize pages when they rank outside them.\n \nStart by monitoring rank fluctuations for your keywords, either in a 3rd party tool like Semrush or Ahrefs or with Google Search Console.\n \nA few more tips:\n \n1/ Analyze your top keywords and how much they fluctuate (will differ by competitiveness, user intent, etc.)\n \n2/ Add rank fluctuations to your organic traffic projections\n \n3/ Define alerts when keywords cross healthy rank ranges (most rank trackers can do this)\nRemember, using the outdated mental model of stable ranks means your traffic projections might be faulty and you constantly stress out over dropping ranks.\n \nGoogle is constantly a/b testing different results.\n \nUse the approach above and build a model for your site.\n \n \nExample 6\nRunning a company is a lot like making a great cup of coffee ☕️\n \n1) Start by deciding what kind of coffee you would like to make and creating the recipe (think: “vision”).\n \n2) Bring together the best ingredients you can. A better the coffee beans, grinder, filter, etc. will make a far better coffee. Same with the team at your company. You’re only as good as your weakest team member.\n \n3) Measure everything, test, and continually optimise over time.\n \n4) Be patient, and don’t rush it (this one is for me!!).\n \n5) Enjoy the results!\n \nWhat am I missing here?!\n \n#b2b #growth #marketing #buildinpublic #coffee\n \n \nExample 7\n \nThe UK can't afford to be left behind during this Fourth Industrial Revolution for the sake of the wealth of the nation, and its citizens.\n \n⏰ In a world of exponential change, hesitation is a recipe for irrelevance.\n \n🤔 You might doubt the transformative power of AI, but can you/we afford to be wrong given the compounding cost of inaction?\n \n🌍 Other nations are seizing this opportunity - the UK must do the same.\n \n🇬🇧 The UK should maintain its leadership in innovation, support entrepreneurship, and seek to maximise inclusivity.\n \n📢 This is my call to action - we must unite, invest, and embrace the AI revolution.\n \n🚢 The AI ship will leave the harbour, permanently. Let's make sure the UK is on it.\n \nhashtag#AI hashtag#artificialintelligence hashtag#uk hashtag#ukeconomy\n\n\n\n---\n**Now, using the specific Input Topic Data provided at the top of these instructions, generate ONLY the optimized LinkedIn post text following all the guidelines and referencing the examples.**"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        2416,
+        80
+      ],
+      "id": "a690ad21-66f4-4c9d-a452-3e8a38b6a19a",
+      "name": "AI Agent5"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"post_1\": {{ JSON.stringify($json.output ?? '') }},\n  \"post_2\": {{ JSON.stringify($('AI Agent4').item.json.output ?? '') }},\n  \"post_3\": {{ JSON.stringify($('AI Agent1').item.json.output ?? '') }}\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2912,
+        80
+      ],
+      "id": "c657831b-e740-4a6f-aafa-8cf06c2dbb29",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1.1,
+      "position": [
+        2576,
+        240
+      ],
+      "id": "5facf2ef-9dec-4f4e-a6b5-854f8f12c23d",
+      "name": "Think"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1.1,
+      "position": [
+        2064,
+        272
+      ],
+      "id": "bc655f30-9658-4879-80d3-f7fca22c8d2c",
+      "name": "Think1"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1.1,
+      "position": [
+        1504,
+        256
+      ],
+      "id": "2404124a-e3a5-4796-a07a-893e9d38ca74",
+      "name": "Think2"
+    }
+  ],
+  "connections": {
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent5",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent4": {
+      "main": [
+        [
+          {
+            "node": "AI Agent5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent5": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent5",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent4",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think2": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "Edit Fields": [
+      {
+        "Tone of voice": "Professional",
+        "Content": "Why are so many dentists going broke?",
+        "Avatar": "Dentists in the UK age 30 or older",
+        "LeadMagnetUrl ": "https://bolt.new/~/sb1-z8s5dhxa"
+      }
+    ],
+    "AI Agent": [
+      {
+        "output": {
+          "idea_1": {
+            "concise_summary": "UK companies are leading in AI adoption across Europe, with nearly 50% integrating AI into strategic initiatives.",
+            "angle_approach": "Discuss the implications of AI adoption on business strategy and planning in a LinkedIn post, emphasizing the need for robust integration.",
+            "details": "- A recent study by Accenture found that 49% of UK companies have scaled AI initiatives, the highest in Europe.\n- Over 68% of large firms have adopted AI technologies, with significant investments in training and integration of AI tools.\n- Key sectors include IT, telecommunications, and legal, which have seen up to 30% adoption rates.",
+            "relevance": "This trend is crucial for senior business leaders in the UK as it signifies the competitive edge gained through AI, necessitating a focus on upskilling and strategic implementation."
+          },
+          "idea_2": {
+            "concise_summary": "The integration of AI in hiring processes is reshaping workforce dynamics within UK firms, affecting candidate selection and human resource management.",
+            "angle_approach": "Explore how AI is transforming recruitment processes in organizations on LinkedIn, highlighting both challenges and opportunities for HR professionals.",
+            "details": "- A survey indicated that 74% of businesses plan to enhance AI usage in hiring within the next year, primarily for resume screenings and initial assessments.\n- About 35% of firms use AI to make recommendations on candidate rejections, raising concerns about transparency in hiring practices.\n- Job vacancies requiring AI skills have increased, with 52% of technology leaders citing a skills shortage in this area.",
+            "relevance": "As the recruitment landscape evolves, HR leaders must adapt their strategies to ensure fair practices while leveraging technology, making this knowledge essential for maintaining a competitive workforce."
+          },
+          "idea_3": {
+            "concise_summary": "Business owners in the UK, especially in SMEs, are increasingly turning to AI for operational guidance while balancing traditional advisory relationships.",
+            "angle_approach": "Engage with the concept of blending traditional business wisdom with AI insights in a professional discussion, emphasizing the evolution of entrepreneurship.",
+            "details": "- Over 53% of UK small and medium business owners now consult AI tools for operational advice, showing a strategic shift in business decision-making.\n- Despite this shift, 93% of owners maintain trust in their traditional technology partners, indicating a dual approach to business management.\n- Young entrepreneurs aged 25-34 are the most frequent users, reflecting a generational trend towards technology integration.",
+            "relevance": "This dual approach underscores the evolving nature of business leadership in the UK, where blending human insight with AI efficiency is critical for future growth and sustainability."
+          }
+        }
+      }
+    ],
+    "AI Agent1": [
+      {
+        "output": "Why are so many dentists going broke? \n\nThe financial challenges facing dental practices today are multifaceted, but one clear factor stands out: the urgent need to embrace technology and innovate business strategies. As with many industries, the integration of AI and digital tools is reshaping how practices operate, attract patients, and manage costs. \n\nUK businesses are leading the way in AI adoption, with nearly half of companies integrating AI into their strategic initiatives. For dentists, this signals a pressing need to rethink traditional practice models and leverage AI for everything from patient engagement and diagnostics to financial planning and workflow efficiency. \n\nConsider this: 68% of large UK firms have adopted AI technologies, investing heavily in training and integration to stay competitive. Dentists who fail to keep up risk falling behind both financially and operationally. This is not just about adopting new tech—it’s about embedding AI into the very strategy and daily running of practices to drive sustainable growth. \n\nHow is your practice preparing for this shift? Are you exploring AI tools and digital solutions to enhance patient care and streamline operations? The dental industry can’t afford to lag behind others like IT or legal, which are already seeing significant benefits. \n\nI encourage fellow dental professionals to share experiences, insights, or hurdles they’ve faced in adopting technology. Let’s open this conversation and work towards smarter, more resilient dental practices. \n\nIf you want to explore this further or share your thoughts, feel free to comment below or connect with me. \n\nTogether, we can ensure dentistry thrives in an increasingly digital world. \n\n#Dentistry #DentalPractice #AIinHealthcare #UKBusiness #PracticeManagement"
+      }
+    ],
+    "AI Agent4": [
+      {
+        "output": "Why are so many dentists going broke in the UK today?\n\nIt's a challenging reality that many dental professionals are facing. Rising operational costs, increasing regulatory pressures, and changes in patient expectations are squeezing profitability. Even skilled practitioners with loyal patients are feeling the financial strain.\n\nI’ve spoken with several colleagues who express frustration—not because of their clinical skills, but due to managing business complexities that aren’t taught in dental school. From navigating insurance reimbursements to staffing challenges and marketing, it’s a lot to juggle.\n\nAs dental professionals, how are you adapting to these financial pressures? Are you embracing new business strategies or technologies that can improve efficiency and patient acquisition?  \n\nConsider this:\n\n- Many dental practices report increased overheads impacting their margins.\n- Patient acquisition costs are rising, requiring smarter marketing.\n- Practices without a clear financial plan or support system face a higher risk of closure.\n\nThe crucial insight here is that business savvy is as important as clinical excellence.\n\nI encourage you to share your experiences or solutions you’ve found effective. Together, we can build a stronger, more sustainable future for dentistry.\n\nWhat’s your strategy to keep your practice thriving?\n\nFeel free to comment below or share this post with your network. Let’s start a conversation about overcoming these challenges.\n\n#UKDentistry #DentalBusiness #PracticeManagement #DentistryChallenges #FinancialHealth"
+      }
+    ],
+    "AI Agent5": [
+      {
+        "output": "Why are so many dentists going broke in the UK?\n\nIt's a pressing question that many experienced dental professionals are facing today. Despite a steady demand for dental care, rising costs and changing patient expectations are squeezing profit margins tighter than ever.\n\nMany dentists I know have shared stories of struggling with increasing overheads, regulatory pressures, and patient payment delays. The business side of dentistry can be overwhelming, even for skilled clinicians. Are you feeling the strain too?\n\nConsider this: a combination of inflation, rising material costs, and evolving NHS contract structures is significantly impacting practice profitability. Without careful financial management and strategic planning, maintaining a thriving practice can become a serious challenge.\n\nHow are you navigating these pressures in your practice? What steps have you found effective to strengthen your financial health?\n\nLet's have a conversation. Sharing your experiences might help others who are facing similar challenges—and together, we might uncover solutions.\n\nIf you found this topic relevant, feel free to comment or share your insights.\n\n#UKDentistry #DentalPracticeManagement #DentalFinance #DentistryChallenges #HealthcareBusiness"
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "698d9894576bc3605393e52d2384bc9b5fd351cff74f45ee394c3b015afd6266"
+  }
+}
